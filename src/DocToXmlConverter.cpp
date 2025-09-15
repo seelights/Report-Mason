@@ -52,21 +52,20 @@ FileConverter::ConvertStatus DocToXmlConverter::extractFields(const QString& fil
         return ConvertStatus::INVALID_FORMAT;
     }
 
-    // 首先尝试提取SDT字段
-    ConvertStatus status = extractSdtFields(filePath, fields);
-    if (status == ConvertStatus::SUCCESS && !fields.isEmpty()) {
-        return status;
-    }
-
-    // 如果SDT字段为空，则提取文本内容并智能识别字段
+    // 提取文档的文本内容
     QString textContent;
-    status = extractTextContent(filePath, textContent);
+    ConvertStatus status = extractTextContent(filePath, textContent);
     if (status != ConvertStatus::SUCCESS) {
         return status;
     }
 
-    // 从文本中智能提取字段
-    extractFieldsFromParagraphs(textContent, fields);
+    // 使用基类的通用字段提取功能
+    FileConverter::extractFieldsFromText(textContent, fields);
+
+    // 如果基类没有提取到字段，尝试从段落提取
+    if (fields.isEmpty()) {
+        extractFieldsFromParagraphs(textContent, fields);
+    }
 
     if (fields.isEmpty()) {
         setLastError("无法从文档中提取到有效字段");
@@ -88,10 +87,11 @@ FileConverter::ConvertStatus DocToXmlConverter::convertToXml(const QMap<QString,
 
     // 写入XML头部
     writer.writeStartDocument();
-    writer.writeStartElement("ReportMasonTemplate");
+    writer.writeStartElement("Document");
     writer.writeAttribute("version", "1.0");
     writer.writeAttribute("created", QDateTime::currentDateTime().toString(Qt::ISODate));
     writer.writeAttribute("type", "Word Document");
+    writer.writeAttribute("source", "DocToXmlConverter");
 
     // 写入字段信息
     writer.writeStartElement("fields");
@@ -122,7 +122,7 @@ FileConverter::ConvertStatus DocToXmlConverter::convertToXml(const QMap<QString,
     }
     writer.writeEndElement(); // fields
 
-    writer.writeEndElement(); // ReportMasonTemplate
+    writer.writeEndElement(); // Document
     writer.writeEndDocument();
 
     return ConvertStatus::SUCCESS;
@@ -162,30 +162,54 @@ FileConverter::ConvertStatus DocToXmlConverter::extractTextContent(const QString
         QByteArray xmlContent = readXmlFromZip(docxPath, DOCX_DOCUMENT_PATH);
         if (xmlContent.isEmpty()) {
             setLastError("无法读取DOCX文档内容");
+            qDebug() << "DocToXmlConverter: 无法从ZIP中读取document.xml";
             return ConvertStatus::PARSE_ERROR;
         }
+        
+        qDebug() << "DocToXmlConverter: 成功读取document.xml，大小:" << xmlContent.size() << "字节";
+        qDebug() << "DocToXmlConverter: XML内容预览:" << QString::fromUtf8(xmlContent.left(500));
 
         // 解析XML并提取文本
         QXmlStreamReader reader(xmlContent);
         QStringList paragraphs;
+        
+        qDebug() << "DocToXmlConverter: 开始解析XML，寻找w:t元素";
+        int elementCount = 0;
+        int wTCount = 0;
 
         while (!reader.atEnd() && !reader.hasError()) {
             QXmlStreamReader::TokenType token = reader.readNext();
 
-            if (token == QXmlStreamReader::StartElement && reader.name() == "w:t") {
-                QString text = reader.readElementText();
-                if (!text.isEmpty()) {
-                    paragraphs.append(text);
+            if (token == QXmlStreamReader::StartElement) {
+                elementCount++;
+                QString elementName = reader.name().toString();
+                qDebug() << "DocToXmlConverter: 找到元素:" << elementName;
+                
+                if (elementName == "t") {
+                    wTCount++;
+                    QString text = reader.readElementText();
+                    qDebug() << "DocToXmlConverter: t元素内容:" << text;
+                    if (!text.isEmpty()) {
+                        paragraphs.append(text);
+                    }
                 }
             }
         }
+        
+        qDebug() << "DocToXmlConverter: 总共找到" << elementCount << "个元素，其中" << wTCount << "个w:t元素";
 
         if (reader.hasError()) {
             setLastError(QString("解析XML时出错: %1").arg(reader.errorString()));
             return ConvertStatus::PARSE_ERROR;
         }
 
-        textContent = paragraphs.join(" ");
+        // 将段落用换行符连接，保持段落结构
+        textContent = paragraphs.join("\n");
+        qDebug() << "DocToXmlConverter: 提取到文本内容长度:" << textContent.length();
+        qDebug() << "DocToXmlConverter: 提取到的段落数:" << paragraphs.size();
+        if (!textContent.isEmpty()) {
+            qDebug() << "DocToXmlConverter: 文本内容预览:" << textContent.left(200);
+        }
         return ConvertStatus::SUCCESS;
     } catch (const std::exception& e) {
         setLastError(QString("提取文本内容时发生异常: %1").arg(e.what()));
@@ -242,7 +266,7 @@ bool DocToXmlConverter::parseDocumentXml(const QByteArray& xmlContent,
     while (!reader.atEnd() && !reader.hasError()) {
         QXmlStreamReader::TokenType token = reader.readNext();
 
-        if (token == QXmlStreamReader::StartElement && reader.name() == "w:sdt") {
+        if (token == QXmlStreamReader::StartElement && reader.name() == "sdt") {
             if (!parseSdtElement(reader, fields)) {
                 return false;
             }
@@ -260,18 +284,18 @@ bool DocToXmlConverter::parseSdtElement(QXmlStreamReader& reader, QMap<QString, 
     int depth = 0;
 
     // 解析SDT属性，获取标签名
-    while (reader.readNext() != QXmlStreamReader::EndElement || reader.name() != "w:sdt") {
+    while (reader.readNext() != QXmlStreamReader::EndElement || reader.name() != "sdt") {
         if (reader.tokenType() == QXmlStreamReader::StartElement) {
-            if (reader.name() == "w:tag") {
-                tagName = reader.attributes().value("w:val").toString();
-            } else if (reader.name() == "w:sdtContent") {
+            if (reader.name() == "tag") {
+                tagName = reader.attributes().value("val").toString();
+            } else if (reader.name() == "sdtContent") {
                 inSdtContent = true;
                 depth++; // 手动跟踪深度
-            } else if (inSdtContent && reader.name() == "w:t") {
+            } else if (inSdtContent && reader.name() == "t") {
                 content += reader.readElementText();
             }
         } else if (reader.tokenType() == QXmlStreamReader::EndElement &&
-                   reader.name() == "w:sdtContent") {
+                   reader.name() == "sdtContent") {
             inSdtContent = false;
             depth--; // 手动跟踪深度
         }
@@ -372,33 +396,29 @@ bool DocToXmlConverter::createModifiedZip(const QString& templatePath,
 void DocToXmlConverter::extractFieldsFromParagraphs(const QString& textContent,
                                                     QMap<QString, FieldInfo>& fields)
 {
+    qDebug() << "DocToXmlConverter: 开始从段落提取字段，输入文本长度:" << textContent.length();
     QString cleanedText = processWordFormatting(textContent);
+    qDebug() << "DocToXmlConverter: 清理后文本长度:" << cleanedText.length();
 
-    // 使用基类的智能字段提取功能
+    // 使用基类的通用字段提取功能
     FileConverter::extractFieldsFromText(cleanedText, fields);
+    qDebug() << "DocToXmlConverter: 基类提取到字段数:" << fields.size();
 
-    // 添加Word特有的字段识别
-    QRegularExpression titlePattern(R"(实验报告[：:]\s*(.+?)(?:\n|$))");
-    QRegularExpressionMatch titleMatch = titlePattern.match(cleanedText);
-    if (titleMatch.hasMatch()) {
-        fields["Title"] = FieldInfo("Title", titleMatch.captured(1).trimmed(), true);
+    // 如果基类没有提取到字段，尝试按段落分割
+    if (fields.isEmpty()) {
+        QStringList paragraphs = cleanedText.split('\n', Qt::SkipEmptyParts);
+        for (int i = 0; i < paragraphs.size() && i < 20; ++i) { // 限制最多20个段落
+            QString paragraph = paragraphs[i].trimmed();
+            if (!paragraph.isEmpty() && paragraph.length() > 2) {
+                QString fieldName = QStringLiteral("Paragraph_%1").arg(i + 1);
+                fields[fieldName] = FieldInfo(fieldName, paragraph, false);
+            }
+        }
     }
 
-    // 识别实验步骤
-    QRegularExpression stepsPattern(R"(实验步骤[：:]\s*(.+?)(?=实验结果|结论|$))",
-                                    QRegularExpression::DotMatchesEverythingOption);
-    QRegularExpressionMatch stepsMatch = stepsPattern.match(cleanedText);
-    if (stepsMatch.hasMatch()) {
-        fields["ExperimentSteps"] = FieldInfo("ExperimentSteps", stepsMatch.captured(1).trimmed());
-    }
-
-    // 识别实验结果
-    QRegularExpression resultsPattern(R"(实验结果[：:]\s*(.+?)(?=结论|$))",
-                                      QRegularExpression::DotMatchesEverythingOption);
-    QRegularExpressionMatch resultsMatch = resultsPattern.match(cleanedText);
-    if (resultsMatch.hasMatch()) {
-        fields["ExperimentResults"] =
-            FieldInfo("ExperimentResults", resultsMatch.captured(1).trimmed());
+    qDebug() << "DocToXmlConverter: 最终提取到字段数:" << fields.size();
+    for (auto it = fields.begin(); it != fields.end(); ++it) {
+        qDebug() << "DocToXmlConverter: 字段" << it.key() << ":" << it.value().content;
     }
 }
 
@@ -407,7 +427,7 @@ QString DocToXmlConverter::processWordFormatting(const QString& text) const
     QString processed = text;
 
     // 移除Word特有的控制字符
-    processed.remove(QRegularExpression(R"(\u0001|\u0002|\u0003|\u0004|\u0005|\u0006|\u0007)"));
+    processed.remove(QRegularExpression(QStringLiteral("[\u0001-\u0007]")));
 
     // 统一换行符
     processed.replace("\r\n", "\n");

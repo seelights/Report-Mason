@@ -9,7 +9,6 @@ CONFIG += gcc
 
 # 添加Qt 6.9.1兼容性标志
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000
-DEFINES += QT_NO_DEBUG_OUTPUT
 
 # 添加编译器特定标志来解决noexcept问题
 QMAKE_CXXFLAGS += -Wno-error

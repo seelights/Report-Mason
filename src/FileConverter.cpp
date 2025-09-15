@@ -101,30 +101,52 @@ bool FileConverter::extractFieldsFromText(const QString& text,
                                           QMap<QString, FieldInfo>& fields) const
 {
     QString cleanedText = cleanText(text);
+    qDebug() << "FileConverter: 开始从文本提取字段，文本长度:" << cleanedText.length();
 
     // 使用正则表达式提取常见字段
     QMap<QString, QRegularExpression> patterns;
-    patterns["Title"] = QRegularExpression(R"(题目[：:]\s*(.+?)(?:\n|$))");
-    patterns["StudentName"] = QRegularExpression(R"(姓名[：:]\s*(.+?)(?:\n|$))");
-    patterns["StudentID"] = QRegularExpression(R"(学号[：:]\s*(.+?)(?:\n|$))");
-    patterns["Class"] = QRegularExpression(R"(班级[：:]\s*(.+?)(?:\n|$))");
-    patterns["Abstract"] =
-        QRegularExpression(R"(摘要[：:]\s*(.+?)(?=关键词|结论|$)|\s*(.+?)(?=关键词|结论|$))",
+    patterns[QStringLiteral("Title")] = QRegularExpression(QStringLiteral("题目[：:]\\s*(.+?)(?:\\n|$)"));
+    patterns[QStringLiteral("StudentName")] = QRegularExpression(QStringLiteral("姓名[：:]\\s*(.+?)(?:\\n|$)"));
+    patterns[QStringLiteral("StudentID")] = QRegularExpression(QStringLiteral("学号[：:]\\s*(.+?)(?:\\n|$)"));
+    patterns[QStringLiteral("Class")] = QRegularExpression(QStringLiteral("班级[：:]\\s*(.+?)(?:\\n|$)"));
+    patterns[QStringLiteral("Abstract")] =
+        QRegularExpression(QStringLiteral("摘要[：:]\\s*(.+?)(?=关键词|结论|$)|\\s*(.+?)(?=关键词|结论|$)"),
                            QRegularExpression::DotMatchesEverythingOption);
-    patterns["Keywords"] = QRegularExpression(R"(关键词[：:]\s*(.+?)(?:\n|$))");
-    patterns["Conclusion"] =
-        QRegularExpression(R"(结论[：:]\s*(.+?)$)", QRegularExpression::DotMatchesEverythingOption);
+    patterns[QStringLiteral("Keywords")] = QRegularExpression(QStringLiteral("关键词[：:]\\s*(.+?)(?:\\n|$)"));
+    patterns[QStringLiteral("Conclusion")] =
+        QRegularExpression(QStringLiteral("结论[：:]\\s*(.+?)$"), QRegularExpression::DotMatchesEverythingOption);
 
+    int matchedFields = 0;
     for (auto it = patterns.begin(); it != patterns.end(); ++it) {
         QRegularExpressionMatch match = it.value().match(cleanedText);
         if (match.hasMatch()) {
             QString content = match.captured(1).trimmed();
             if (!content.isEmpty()) {
                 fields[it.key()] = FieldInfo(it.key(), content);
+                matchedFields++;
+                qDebug() << "FileConverter: 匹配到字段" << it.key() << ":" << content;
             }
         }
     }
 
+    qDebug() << "FileConverter: 通过正则表达式匹配到" << matchedFields << "个字段";
+
+    // 如果没有匹配到任何字段，尝试按行分割文本
+    if (fields.isEmpty()) {
+        QStringList lines = cleanedText.split('\n', Qt::SkipEmptyParts);
+        qDebug() << "FileConverter: 文本按行分割后得到" << lines.size() << "行";
+        
+        for (int i = 0; i < lines.size() && i < 10; ++i) { // 限制最多10行
+            QString line = lines[i].trimmed();
+            if (!line.isEmpty() && line.length() > 2) {
+                QString fieldName = QStringLiteral("Line_%1").arg(i + 1);
+                fields[fieldName] = FieldInfo(fieldName, line, false);
+                qDebug() << "FileConverter: 创建字段" << fieldName << ":" << line;
+            }
+        }
+    }
+
+    qDebug() << "FileConverter: 最终提取到" << fields.size() << "个字段";
     return !fields.isEmpty();
 }
 
@@ -136,22 +158,21 @@ void FileConverter::setLastError(const QString& error)
 
 QString FileConverter::generateXmlHeader() const
 {
-    return R"(<?xml version="1.0" encoding="UTF-8"?>
-<ReportMasonTemplate version="1.0" created=")" +
-           QDateTime::currentDateTime().toString(Qt::ISODate) + R"(">
-)";
+    return QStringLiteral("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                         "<ReportMasonTemplate version=\"1.0\" created=\"") +
+           QDateTime::currentDateTime().toString(Qt::ISODate) + QStringLiteral("\">\n");
 }
 
 QString FileConverter::generateXmlFieldNode(const FieldInfo& field) const
 {
-    QString xml = QString(R"(    <field name="%1" required="%2">)")
-                      .arg(field.name, field.required ? "true" : "false");
+    QString xml = QString(QStringLiteral("    <field name=\"%1\" required=\"%2\">"))
+                      .arg(field.name, field.required ? QStringLiteral("true") : QStringLiteral("false"));
 
     if (!field.description.isEmpty()) {
-        xml += QString(R"(<description>%1</description>)").arg(field.description);
+        xml += QString(QStringLiteral("<description>%1</description>")).arg(field.description);
     }
 
-    xml += QString(R"(<content><![CDATA[%1]]></content>)").arg(field.content);
+    xml += QString(QStringLiteral("<content><![CDATA[%1]]></content>")).arg(field.content);
 
     if (!field.keywords.isEmpty()) {
         xml += "<keywords>";

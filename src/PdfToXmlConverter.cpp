@@ -279,7 +279,7 @@ bool PdfToXmlConverter::extractTextFromPdfData(const QByteArray& pdfData, QStrin
             QString text = streamContent;
             text.remove(QRegularExpression(R"(BT\s+)"));
             text.remove(QRegularExpression(R"(\s+ET)"));
-            text.remove(QRegularExpression(R"([^a-zA-Z0-9\u4e00-\u9fff\s])"));
+            text.remove(QRegularExpression(QStringLiteral("[^a-zA-Z0-9\\u4e00-\\u9fff\\s]")));
             textContent += text + " ";
         }
     }

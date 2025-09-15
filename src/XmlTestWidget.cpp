@@ -172,16 +172,43 @@ void XmlTestWidget::openFile()
     m_currentFilePath = fileName;
     m_logSystem->info(QStringLiteral("打开文件: ") + fileName);
     
-    QFile file(fileName);
-    if (file.open(QIODevice::ReadOnly)) {
-        QTextStream stream(&file);
-        // Qt 6中QTextStream默认使用UTF-8编码，不需要设置setCodec
-        m_contentEdit->setPlainText(stream.readAll());
-        file.close();
-        updateStatus(QStringLiteral("文件已加载"));
+    // 检查文件类型
+    QFileInfo fileInfo(fileName);
+    QString suffix = fileInfo.suffix().toLower();
+    
+    if (suffix == QStringLiteral("docx")) {
+        // 对于DOCX文件，先转换为XML再显示
+        QString xmlContent = convertFileToXml(fileName);
+        if (!xmlContent.isEmpty()) {
+            m_contentEdit->setPlainText(xmlContent);
+            updateStatus(QStringLiteral("DOCX文件已转换为XML并加载"));
+        } else {
+            m_logSystem->error(QStringLiteral("无法转换DOCX文件: ") + fileName);
+            QMessageBox::warning(this, QStringLiteral("错误"), QStringLiteral("无法转换DOCX文件！"));
+        }
+    } else if (suffix == QStringLiteral("pdf")) {
+        // 对于PDF文件，先转换为XML再显示
+        QString xmlContent = convertFileToXml(fileName);
+        if (!xmlContent.isEmpty()) {
+            m_contentEdit->setPlainText(xmlContent);
+            updateStatus(QStringLiteral("PDF文件已转换为XML并加载"));
+        } else {
+            m_logSystem->error(QStringLiteral("无法转换PDF文件: ") + fileName);
+            QMessageBox::warning(this, QStringLiteral("错误"), QStringLiteral("无法转换PDF文件！"));
+        }
     } else {
-        m_logSystem->error(QStringLiteral("无法打开文件: ") + fileName);
-        QMessageBox::warning(this, QStringLiteral("错误"), QStringLiteral("无法打开文件！"));
+        // 对于其他文件，直接读取文本
+        QFile file(fileName);
+        if (file.open(QIODevice::ReadOnly)) {
+            QTextStream stream(&file);
+            // Qt 6中QTextStream默认使用UTF-8编码，不需要设置setCodec
+            m_contentEdit->setPlainText(stream.readAll());
+            file.close();
+            updateStatus(QStringLiteral("文件已加载"));
+        } else {
+            m_logSystem->error(QStringLiteral("无法打开文件: ") + fileName);
+            QMessageBox::warning(this, QStringLiteral("错误"), QStringLiteral("无法打开文件！"));
+        }
     }
 }
 
