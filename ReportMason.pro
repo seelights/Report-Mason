@@ -28,7 +28,9 @@ INCLUDEPATH += libs/karchive/src
 # 源文件
 SOURCES += \
     main.cpp \
-    Widget.cpp \
+    src/LogSystem.cpp \
+    src/XmlTestWidget.cpp \
+    src/TestWidget.cpp \
     src/FileConverter.cpp \
     src/DocToXmlConverter.cpp \
     src/PdfToXmlConverter.cpp \
@@ -49,7 +51,9 @@ SOURCES += \
 
 # 头文件
 HEADERS += \
-    Widget.h \
+    src/LogSystem.h \
+    src/XmlTestWidget.h \
+    src/TestWidget.h \
     src/FileConverter.h \
     src/DocToXmlConverter.h \
     src/PdfToXmlConverter.h \
@@ -73,9 +77,7 @@ HEADERS += \
     libs/karchive/src/kar.h \
     libs/karchive/src/krcc.h
 
-# UI文件
-FORMS += \
-    Widget.ui
+# UI文件（已移除，使用代码创建界面）
 
 # 默认规则
 qnx: target.path = /tmp/$${TARGET}/bin

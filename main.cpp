@@ -13,8 +13,10 @@
 #include <QDebug>
 #include <QDir>
 #include <QStandardPaths>
+#include <QTabWidget>
 
-#include "Widget.h"
+#include "src/XmlTestWidget.h"
+#include "src/TestWidget.h"
 
 int main(int argc, char* argv[])
 {
@@ -31,8 +33,26 @@ int main(int argc, char* argv[])
     qDebug() << "Qt版本:" << QT_VERSION_STR;
 
     // 创建主窗口
-    Widget window;
-    window.show();
+    QWidget mainWindow;
+    mainWindow.setWindowTitle(QStringLiteral("ReportMason - 文档处理工具"));
+    mainWindow.setMinimumSize(1200, 800);
+    
+    // 创建标签页
+    QTabWidget *tabWidget = new QTabWidget(&mainWindow);
+    
+    // 添加XML测试工具标签页
+    XmlTestWidget *xmlTestWidget = new XmlTestWidget();
+    tabWidget->addTab(xmlTestWidget, QStringLiteral("XML测试工具"));
+    
+    // 添加测试工具标签页
+    TestWidget *testWidget = new TestWidget();
+    tabWidget->addTab(testWidget, QStringLiteral("测试工具"));
+    
+    // 设置布局
+    QVBoxLayout *layout = new QVBoxLayout(&mainWindow);
+    layout->addWidget(tabWidget);
+    
+    mainWindow.show();
 
     qDebug() << "主窗口已显示";
 
