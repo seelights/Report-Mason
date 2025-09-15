@@ -23,6 +23,10 @@ TEMPLATE = app
 
 # 包含路径
 INCLUDEPATH += libs/karchive/src
+INCLUDEPATH += tools/base
+INCLUDEPATH += tools/docx
+INCLUDEPATH += tools/pdf
+INCLUDEPATH += tools/utils
 
 # 源文件
 SOURCES += \
@@ -46,7 +50,18 @@ SOURCES += \
     libs/karchive/src/ktar.cpp \
     libs/karchive/src/kar.cpp \
     libs/karchive/src/krcc.cpp \
-    libs/karchive/src/loggingcategory.cpp
+    libs/karchive/src/loggingcategory.cpp \
+    tools/base/ContentExtractor.cpp \
+    tools/base/ImageExtractor.cpp \
+    tools/base/TableExtractor.cpp \
+    tools/base/ChartExtractor.cpp \
+    tools/utils/ContentUtils.cpp \
+    tools/docx/DocxImageExtractor.cpp \
+    tools/docx/DocxTableExtractor.cpp \
+    tools/docx/DocxChartExtractor.cpp \
+    tools/pdf/PdfImageExtractor.cpp \
+    tools/pdf/PdfTableExtractor.cpp \
+    tools/pdf/PdfChartExtractor.cpp
 
 # 头文件
 HEADERS += \
@@ -74,7 +89,18 @@ HEADERS += \
     libs/karchive/src/knonefilter.h \
     libs/karchive/src/ktar.h \
     libs/karchive/src/kar.h \
-    libs/karchive/src/krcc.h
+    libs/karchive/src/krcc.h \
+    tools/base/ContentExtractor.h \
+    tools/base/ImageExtractor.h \
+    tools/base/TableExtractor.h \
+    tools/base/ChartExtractor.h \
+    tools/utils/ContentUtils.h \
+    tools/docx/DocxImageExtractor.h \
+    tools/docx/DocxTableExtractor.h \
+    tools/docx/DocxChartExtractor.h \
+    tools/pdf/PdfImageExtractor.h \
+    tools/pdf/PdfTableExtractor.h \
+    tools/pdf/PdfChartExtractor.h
 
 # UI文件（已移除，使用代码创建界面）
 
