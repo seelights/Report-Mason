@@ -9,11 +9,18 @@ CONFIG += gcc
 
 # 添加Qt 6.9.1兼容性标志
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000
+DEFINES += QT_DISABLE_NOEXCEPT_CHECKS
 
 # 添加编译器特定标志来解决noexcept问题
 QMAKE_CXXFLAGS += -Wno-error
 QMAKE_CXXFLAGS += -fno-strict-aliasing
-QMAKE_CXXFLAGS += -DQT_NO_EXCEPTIONS
+QMAKE_CXXFLAGS += -DQT_DISABLE_DEPRECATED_BEFORE=0x060000
+QMAKE_CXXFLAGS += -Wno-unused-parameter
+QMAKE_CXXFLAGS += -Wno-unused-variable
+QMAKE_CXXFLAGS += -DQT_DISABLE_NOEXCEPT_CHECKS
+QMAKE_CXXFLAGS += -std=c++17
+QMAKE_CXXFLAGS += -DQT_NO_DEBUG_OUTPUT
+QMAKE_CXXFLAGS += -DQT_DISABLE_DEBUG_OUTPUT
 
 # 添加zlib支持
 LIBS += -lz
@@ -27,6 +34,24 @@ INCLUDEPATH += tools/base
 INCLUDEPATH += tools/docx
 INCLUDEPATH += tools/pdf
 INCLUDEPATH += tools/utils
+
+# Poppler库配置（MSYS2 MinGW版本）
+# 使用MSYS2安装的Poppler库
+INCLUDEPATH += C:/msys64/mingw64/include/poppler/qt6
+LIBS += -LC:/msys64/mingw64/lib
+LIBS += -lpoppler-qt6
+LIBS += -lpoppler
+
+# 添加额外的链接选项
+QMAKE_LFLAGS += -Wl,--allow-multiple-definition
+
+# 注意：Poppler的DLL文件需要手动复制到生成目录（debug/或release/）
+# 需要复制的DLL文件：
+# - poppler.dll
+# - poppler-cpp.dll
+# - poppler-glib.dll
+# 从：D:/Program Files (x86)/Release-24.08.0-0/poppler-24.08.0/Library/bin/
+# 到：debug/ 或 release/ 目录
 
 # 源文件
 SOURCES += \

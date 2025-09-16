@@ -12,6 +12,8 @@
 #define PDFIMAGEEXTRACTOR_H
 
 #include "../base/ImageExtractor.h"
+#include <poppler-qt6.h> // 使用Qt6版本的Poppler
+#include <memory> // 用于std::unique_ptr
 
 /**
  * @brief PDF图片提取器
@@ -97,8 +99,18 @@ protected:
     bool decodePdfImageData(const QByteArray& encodedData, const QString& format,
                             QByteArray& decodedData) const;
 
+    // Poppler相关方法
+    bool parsePdfWithPoppler(const QString& filePath, QList<ImageInfo>& images);
+    QImage renderPageWithPoppler(int pageNumber, int dpi = 150) const;
+    bool loadPopplerDocument(const QString& filePath);
+    void closePopplerDocument();
+
 private:
     static const QStringList SUPPORTED_EXTENSIONS;
+    
+    // Poppler文档对象（Qt版本，使用unique_ptr）
+    std::unique_ptr<Poppler::Document> m_popplerDocument;
+    QString m_currentPdfPath;
 };
 
 #endif // PDFIMAGEEXTRACTOR_H

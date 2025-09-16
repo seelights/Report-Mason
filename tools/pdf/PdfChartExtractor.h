@@ -12,6 +12,8 @@
 #define PDFCHARTEXTRACTOR_H
 
 #include "../base/ChartExtractor.h"
+#include <poppler-qt6.h> // 使用Qt6版本的Poppler
+#include <memory> // 用于std::unique_ptr
 
 /**
  * @brief PDF图表提取器
@@ -116,8 +118,18 @@ protected:
      */
     bool validateChartData(const ChartInfo& chart) const;
 
+    // Poppler相关方法
+    bool parsePdfWithPoppler(const QString& filePath, QList<ChartInfo>& charts);
+    QString extractTextFromPageWithPoppler(int pageNumber) const;
+    bool loadPopplerDocument(const QString& filePath);
+    void closePopplerDocument();
+
 private:
     static const QStringList SUPPORTED_EXTENSIONS;
+    
+    // Poppler文档对象（Qt版本，使用unique_ptr）
+    std::unique_ptr<Poppler::Document> m_popplerDocument;
+    QString m_currentPdfPath;
 };
 
 #endif // PDFCHARTEXTRACTOR_H

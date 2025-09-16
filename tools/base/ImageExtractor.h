@@ -1,7 +1,7 @@
 /*
  * @Author: seelights
  * @Date: 2025-09-15 19:05:00
- * @LastEditTime: 2025-09-15 19:05:00
+ * @LastEditTime: 2025-09-16 12:26:04
  * @LastEditors: seelights
  * @Description: 图片提取器抽象基类
  * @FilePath: \ReportMason\tools\base\ImageExtractor.h
