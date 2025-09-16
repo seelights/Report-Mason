@@ -17,27 +17,20 @@
 const QStringList DocxTableExtractor::SUPPORTED_EXTENSIONS = {"docx"};
 const QString DocxTableExtractor::DOCX_DOCUMENT_PATH = "word/document.xml";
 
-DocxTableExtractor::DocxTableExtractor(QObject *parent)
-    : TableExtractor(parent)
-{
-}
+DocxTableExtractor::DocxTableExtractor(QObject* parent) : TableExtractor(parent) {}
 
-DocxTableExtractor::~DocxTableExtractor()
-{
-}
+DocxTableExtractor::~DocxTableExtractor() {}
 
-bool DocxTableExtractor::isSupported(const QString &filePath) const
+bool DocxTableExtractor::isSupported(const QString& filePath) const
 {
     QFileInfo fileInfo(filePath);
     return SUPPORTED_EXTENSIONS.contains(fileInfo.suffix().toLower());
 }
 
-QStringList DocxTableExtractor::getSupportedFormats() const
-{
-    return SUPPORTED_EXTENSIONS;
-}
+QStringList DocxTableExtractor::getSupportedFormats() const { return SUPPORTED_EXTENSIONS; }
 
-TableExtractor::ExtractStatus DocxTableExtractor::extractTables(const QString &filePath, QList<TableInfo> &tables)
+TableExtractor::ExtractStatus DocxTableExtractor::extractTables(const QString& filePath,
+                                                                QList<TableInfo>& tables)
 {
     if (!isSupported(filePath)) {
         setLastError("不支持的文件格式，仅支持.docx文件");
@@ -49,29 +42,32 @@ TableExtractor::ExtractStatus DocxTableExtractor::extractTables(const QString &f
         return ExtractStatus::FILE_NOT_FOUND;
     }
 
-    try {
-        // 读取document.xml
-        QByteArray xmlContent = readFileFromZip(filePath, DOCX_DOCUMENT_PATH);
-        if (xmlContent.isEmpty()) {
-            setLastError("无法读取DOCX文档内容");
-            return ExtractStatus::PARSE_ERROR;
-        }
-
-        // 解析XML内容
-        if (!parseDocumentXml(xmlContent, tables)) {
-            setLastError("解析DOCX文档XML失败");
-            return ExtractStatus::PARSE_ERROR;
-        }
-
-        qDebug() << "DocxTableExtractor: 成功提取" << tables.size() << "个表格";
-        return ExtractStatus::SUCCESS;
-    } catch (const std::exception &e) {
-        setLastError(QString("提取表格时发生异常: %1").arg(e.what()));
-        return ExtractStatus::UNKNOWN_ERROR;
+    // 验证ZIP文件
+    if (!KZipUtils::isValidZip(filePath)) {
+        setLastError("无效的DOCX文件格式");
+        return ExtractStatus::INVALID_FORMAT;
     }
+
+    // 读取document.xml
+    QByteArray xmlContent;
+    if (!KZipUtils::readFileFromZip(filePath, DOCX_DOCUMENT_PATH, xmlContent)) {
+        setLastError("无法读取DOCX文档内容");
+        return ExtractStatus::PARSE_ERROR;
+    }
+
+    // 解析XML内容
+    if (!parseDocumentXml(xmlContent, tables)) {
+        setLastError("解析DOCX文档XML失败");
+        return ExtractStatus::PARSE_ERROR;
+    }
+
+    qDebug() << "DocxTableExtractor: 成功提取" << tables.size() << "个表格";
+    return ExtractStatus::SUCCESS;
 }
 
-TableExtractor::ExtractStatus DocxTableExtractor::extractTablesByPosition(const QString &filePath, const QRect &position, QList<TableInfo> &tables)
+TableExtractor::ExtractStatus DocxTableExtractor::extractTablesByPosition(const QString& filePath,
+                                                                          const QRect& position,
+                                                                          QList<TableInfo>& tables)
 {
     QList<TableInfo> allTables;
     ExtractStatus status = extractTables(filePath, allTables);
@@ -80,7 +76,7 @@ TableExtractor::ExtractStatus DocxTableExtractor::extractTablesByPosition(const 
     }
 
     // 过滤指定位置的表格
-    for (const TableInfo &table : allTables) {
+    for (const TableInfo& table : allTables) {
         if (position.intersects(table.position)) {
             tables.append(table);
         }
@@ -89,7 +85,7 @@ TableExtractor::ExtractStatus DocxTableExtractor::extractTablesByPosition(const 
     return ExtractStatus::SUCCESS;
 }
 
-int DocxTableExtractor::getTableCount(const QString &filePath)
+int DocxTableExtractor::getTableCount(const QString& filePath)
 {
     QList<TableInfo> tables;
     ExtractStatus status = extractTables(filePath, tables);
@@ -99,117 +95,211 @@ int DocxTableExtractor::getTableCount(const QString &filePath)
     return tables.size();
 }
 
-QByteArray DocxTableExtractor::readFileFromZip(const QString &zipPath, const QString &internalPath) const
+QByteArray DocxTableExtractor::readFileFromZip(const QString& zipPath,
+                                               const QString& internalPath) const
 {
     // 这里需要使用KZipUtils来读取ZIP文件
     // 暂时返回空数据，实际实现需要集成KZipUtils
     Q_UNUSED(zipPath)
     Q_UNUSED(internalPath)
-    
+
     qDebug() << "DocxTableExtractor: 需要集成KZipUtils来读取ZIP文件";
     return QByteArray();
 }
 
-bool DocxTableExtractor::parseDocumentXml(const QByteArray &xmlContent, QList<TableInfo> &tables) const
+bool DocxTableExtractor::parseDocumentXml(const QByteArray& xmlContent, QList<TableInfo>& tables)
 {
     QXmlStreamReader reader(xmlContent);
-    
+
     while (!reader.atEnd() && !reader.hasError()) {
         QXmlStreamReader::TokenType token = reader.readNext();
-        
+
         if (token == QXmlStreamReader::StartElement) {
             QString elementName = reader.name().toString();
-            
+
             if (elementName == "tbl") {
                 parseTableElement(reader, tables);
             }
         }
     }
-    
+
     return !reader.hasError();
 }
 
-bool DocxTableExtractor::parseTableElement(QXmlStreamReader &reader, QList<TableInfo> &tables) const
+bool DocxTableExtractor::parseTableElement(QXmlStreamReader& reader, QList<TableInfo>& tables)
 {
-    Q_UNUSED(reader)
-    Q_UNUSED(tables)
-    
-    // 解析tbl元素中的表格信息
-    // 这里需要实现具体的解析逻辑
-    qDebug() << "DocxTableExtractor: 解析tbl元素";
-    return true;
+    TableInfo table;
+    table.id = generateUniqueId("table");
+    table.rows = 0;
+    table.columns = 0;
+
+    // 解析表格行
+    while (!reader.atEnd() && !reader.hasError()) {
+        QXmlStreamReader::TokenType token = reader.readNext();
+
+        if (token == QXmlStreamReader::StartElement) {
+            QString elementName = reader.name().toString();
+
+            if (elementName == "tr") {
+                // 解析表格行
+                if (parseTableRow(reader, table)) {
+                    table.rows++;
+                }
+            }
+        } else if (token == QXmlStreamReader::EndElement) {
+            QString elementName = reader.name().toString();
+            if (elementName == "tbl") {
+                break;
+            }
+        }
+    }
+
+    // 计算列数
+    if (!table.cells.isEmpty()) {
+        table.columns = 0;
+        for (const QList<CellInfo>& row : table.cells) {
+            table.columns = qMax(table.columns, row.size());
+        }
+    }
+
+    if (table.rows > 0 && table.columns > 0) {
+        tables.append(table);
+        qDebug() << "DocxTableExtractor: 解析到表格" << table.rows << "行" << table.columns << "列";
+        return true;
+    }
+
+    return false;
 }
 
-bool DocxTableExtractor::parseTableRow(QXmlStreamReader &reader, TableInfo &table) const
+bool DocxTableExtractor::parseTableRow(QXmlStreamReader& reader, TableInfo& table)
 {
-    Q_UNUSED(reader)
-    Q_UNUSED(table)
-    
-    // 解析tr元素（表格行）
-    // 这里需要实现具体的解析逻辑
-    qDebug() << "DocxTableExtractor: 解析tr元素";
-    return true;
+    QList<CellInfo> row;
+    int currentRow = table.rows;
+    int currentCol = 0;
+
+    // 解析表格单元格
+    while (!reader.atEnd() && !reader.hasError()) {
+        QXmlStreamReader::TokenType token = reader.readNext();
+
+        if (token == QXmlStreamReader::StartElement) {
+            QString elementName = reader.name().toString();
+
+            if (elementName == "tc") {
+                // 解析表格单元格
+                CellInfo cell;
+                cell.row = currentRow;
+                cell.column = currentCol;
+                cell.content = parseTableCell(reader);
+                row.append(cell);
+                currentCol++;
+            }
+        } else if (token == QXmlStreamReader::EndElement) {
+            QString elementName = reader.name().toString();
+            if (elementName == "tr") {
+                break;
+            }
+        }
+    }
+
+    if (!row.isEmpty()) {
+        table.cells.append(row);
+        return true;
+    }
+
+    return false;
 }
 
-bool DocxTableExtractor::parseTableCell(QXmlStreamReader &reader, CellInfo &cell) const
+bool DocxTableExtractor::parseTableCell(QXmlStreamReader& reader, CellInfo& cell) const
 {
     Q_UNUSED(reader)
     Q_UNUSED(cell)
-    
+
     // 解析tc元素（表格单元格）
     // 这里需要实现具体的解析逻辑
     qDebug() << "DocxTableExtractor: 解析tc元素";
     return true;
 }
 
-bool DocxTableExtractor::parseCellContent(QXmlStreamReader &reader, QString &content) const
+QString DocxTableExtractor::parseTableCell(QXmlStreamReader& reader) const
 {
-    Q_UNUSED(reader)
-    Q_UNUSED(content)
-    
+    QString content;
+
     // 解析单元格内容
-    // 这里需要实现具体的解析逻辑
-    qDebug() << "DocxTableExtractor: 解析单元格内容";
-    return true;
+    while (!reader.atEnd() && !reader.hasError()) {
+        QXmlStreamReader::TokenType token = reader.readNext();
+
+        if (token == QXmlStreamReader::StartElement) {
+            QString elementName = reader.name().toString();
+
+            if (elementName == "t") {
+                // 读取文本内容
+                QString text = reader.readElementText();
+                content += text;
+            } else if (elementName == "p") {
+                // 段落，递归解析
+                QString paragraphContent;
+                if (parseCellContent(reader, paragraphContent)) {
+                    if (!content.isEmpty()) {
+                        content += "\n";
+                    }
+                    content += paragraphContent;
+                }
+            }
+        } else if (token == QXmlStreamReader::EndElement) {
+            QString elementName = reader.name().toString();
+            if (elementName == "tc") {
+                break;
+            }
+        }
+    }
+
+    return content.trimmed();
 }
 
-bool DocxTableExtractor::getTableProperties(QXmlStreamReader &reader, QJsonObject &properties) const
+bool DocxTableExtractor::parseCellContent(QXmlStreamReader& reader, QString& content) const
+{
+    QString cellContent = parseTableCell(reader);
+    content = cellContent;
+    return !cellContent.isEmpty();
+}
+
+bool DocxTableExtractor::getTableProperties(QXmlStreamReader& reader, QJsonObject& properties) const
 {
     Q_UNUSED(reader)
     Q_UNUSED(properties)
-    
+
     // 获取表格属性
     // 这里需要实现具体的解析逻辑
     qDebug() << "DocxTableExtractor: 获取表格属性";
     return true;
 }
 
-bool DocxTableExtractor::getCellProperties(QXmlStreamReader &reader, QJsonObject &properties) const
+bool DocxTableExtractor::getCellProperties(QXmlStreamReader& reader, QJsonObject& properties) const
 {
     Q_UNUSED(reader)
     Q_UNUSED(properties)
-    
+
     // 获取单元格属性
     // 这里需要实现具体的解析逻辑
     qDebug() << "DocxTableExtractor: 获取单元格属性";
     return true;
 }
 
-bool DocxTableExtractor::getTablePosition(QXmlStreamReader &reader, QRect &position) const
+bool DocxTableExtractor::getTablePosition(QXmlStreamReader& reader, QRect& position) const
 {
     Q_UNUSED(reader)
     Q_UNUSED(position)
-    
+
     // 获取表格位置
     // 这里需要实现具体的解析逻辑
     qDebug() << "DocxTableExtractor: 获取表格位置";
     return true;
 }
 
-QSize DocxTableExtractor::calculateTableSize(const TableInfo &table) const
+QSize DocxTableExtractor::calculateTableSize(const TableInfo& table) const
 {
     Q_UNUSED(table)
-    
+
     // 计算表格尺寸
     // 这里需要实现具体的计算逻辑
     qDebug() << "DocxTableExtractor: 计算表格尺寸";

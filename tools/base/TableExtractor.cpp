@@ -14,6 +14,7 @@
 #include <QJsonDocument>
 #include <QStringConverter>
 #include <QDebug>
+#include <QXmlStreamWriter>
 
 TableExtractor::TableExtractor(QObject* parent) : ContentExtractor(parent) {}
 
@@ -236,4 +237,138 @@ QString TableExtractor::escapeCsvContent(const QString& content) const
     }
 
     return escaped;
+}
+
+bool TableExtractor::exportToXml(const TableInfo& table, const QString& outputPath)
+{
+    QFile file(outputPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        setLastError(QString("无法创建XML文件: %1").arg(outputPath));
+        return false;
+    }
+
+    QXmlStreamWriter writer(&file);
+    writer.setAutoFormatting(true);
+    writer.setAutoFormattingIndent(2);
+
+    // 写入XML声明
+    writer.writeStartDocument("1.0", true);
+
+    // 写入根元素
+    writer.writeStartElement("Table");
+    writer.writeAttribute("id", table.id);
+    writer.writeAttribute("rows", QString::number(table.rows));
+    writer.writeAttribute("columns", QString::number(table.columns));
+
+    // 写入表格数据
+    writer.writeStartElement("Data");
+    for (int row = 0; row < table.rows; ++row) {
+        writer.writeStartElement("Row");
+        writer.writeAttribute("index", QString::number(row));
+        
+        for (int col = 0; col < table.columns; ++col) {
+            writer.writeStartElement("Cell");
+            writer.writeAttribute("row", QString::number(row));
+            writer.writeAttribute("column", QString::number(col));
+            
+            if (row < table.cells.size() && col < table.cells[row].size()) {
+                const CellInfo& cell = table.cells[row][col];
+                writer.writeCharacters(cell.content);
+            }
+            
+            writer.writeEndElement(); // Cell
+        }
+        
+        writer.writeEndElement(); // Row
+    }
+    writer.writeEndElement(); // Data
+
+    // 写入属性
+    if (!table.properties.isEmpty()) {
+        writer.writeStartElement("Properties");
+        for (auto it = table.properties.begin(); it != table.properties.end(); ++it) {
+            writer.writeStartElement("Property");
+            writer.writeAttribute("name", it.key());
+            writer.writeCharacters(it.value().toString());
+            writer.writeEndElement(); // Property
+        }
+        writer.writeEndElement(); // Properties
+    }
+
+    writer.writeEndElement(); // Table
+    writer.writeEndDocument();
+
+    file.close();
+    return true;
+}
+
+bool TableExtractor::exportToXml(const QList<TableInfo>& tables, const QString& outputPath)
+{
+    QFile file(outputPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        setLastError(QString("无法创建XML文件: %1").arg(outputPath));
+        return false;
+    }
+
+    QXmlStreamWriter writer(&file);
+    writer.setAutoFormatting(true);
+    writer.setAutoFormattingIndent(2);
+
+    // 写入XML声明
+    writer.writeStartDocument("1.0", true);
+
+    // 写入根元素
+    writer.writeStartElement("Tables");
+    writer.writeAttribute("count", QString::number(tables.size()));
+
+    // 写入每个表格
+    for (const TableInfo& table : tables) {
+        writer.writeStartElement("Table");
+        writer.writeAttribute("id", table.id);
+        writer.writeAttribute("rows", QString::number(table.rows));
+        writer.writeAttribute("columns", QString::number(table.columns));
+
+        // 写入表格数据
+        writer.writeStartElement("Data");
+        for (int row = 0; row < table.rows; ++row) {
+            writer.writeStartElement("Row");
+            writer.writeAttribute("index", QString::number(row));
+            
+            for (int col = 0; col < table.columns; ++col) {
+                writer.writeStartElement("Cell");
+                writer.writeAttribute("row", QString::number(row));
+                writer.writeAttribute("column", QString::number(col));
+                
+                if (row < table.cells.size() && col < table.cells[row].size()) {
+                    const CellInfo& cell = table.cells[row][col];
+                    writer.writeCharacters(cell.content);
+                }
+                
+                writer.writeEndElement(); // Cell
+            }
+            
+            writer.writeEndElement(); // Row
+        }
+        writer.writeEndElement(); // Data
+
+        // 写入属性
+        if (!table.properties.isEmpty()) {
+            writer.writeStartElement("Properties");
+            for (auto it = table.properties.begin(); it != table.properties.end(); ++it) {
+                writer.writeStartElement("Property");
+                writer.writeAttribute("name", it.key());
+                writer.writeCharacters(it.value().toString());
+                writer.writeEndElement(); // Property
+            }
+            writer.writeEndElement(); // Properties
+        }
+
+        writer.writeEndElement(); // Table
+    }
+
+    writer.writeEndElement(); // Tables
+    writer.writeEndDocument();
+
+    file.close();
+    return true;
 }

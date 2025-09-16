@@ -51,26 +51,27 @@ ChartExtractor::ExtractStatus DocxChartExtractor::extractCharts(const QString &f
         return ExtractStatus::FILE_NOT_FOUND;
     }
 
-    try {
-        // 读取document.xml
-        QByteArray xmlContent = readFileFromZip(filePath, DOCX_DOCUMENT_PATH);
-        if (xmlContent.isEmpty()) {
-            setLastError("无法读取DOCX文档内容");
-            return ExtractStatus::PARSE_ERROR;
-        }
-
-        // 解析XML内容
-        if (!parseDocumentXml(xmlContent, charts)) {
-            setLastError("解析DOCX文档XML失败");
-            return ExtractStatus::PARSE_ERROR;
-        }
-
-        qDebug() << "DocxChartExtractor: 成功提取" << charts.size() << "个图表";
-        return ExtractStatus::SUCCESS;
-    } catch (const std::exception &e) {
-        setLastError(QString("提取图表时发生异常: %1").arg(e.what()));
-        return ExtractStatus::UNKNOWN_ERROR;
+    // 验证ZIP文件
+    if (!KZipUtils::isValidZip(filePath)) {
+        setLastError("无效的DOCX文件格式");
+        return ExtractStatus::INVALID_FORMAT;
     }
+
+    // 读取document.xml
+    QByteArray xmlContent;
+    if (!KZipUtils::readFileFromZip(filePath, DOCX_DOCUMENT_PATH, xmlContent)) {
+        setLastError("无法读取DOCX文档内容");
+        return ExtractStatus::PARSE_ERROR;
+    }
+
+    // 解析XML内容
+    if (!parseDocumentXml(xmlContent, charts)) {
+        setLastError("解析DOCX文档XML失败");
+        return ExtractStatus::PARSE_ERROR;
+    }
+
+    qDebug() << "DocxChartExtractor: 成功提取" << charts.size() << "个图表";
+    return ExtractStatus::SUCCESS;
 }
 
 ChartExtractor::ExtractStatus DocxChartExtractor::extractChartsByType(const QString &filePath, ChartType chartType, QList<ChartInfo> &charts)

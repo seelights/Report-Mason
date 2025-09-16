@@ -12,12 +12,13 @@
 #define DOCXTABLEEXTRACTOR_H
 
 #include "../base/TableExtractor.h"
+#include "../../src/KZipUtils.h"
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 
 /**
  * @brief DOCX表格提取器
- * 
+ *
  * 专门用于从DOCX文件中提取表格内容
  */
 class DocxTableExtractor : public TableExtractor
@@ -25,15 +26,16 @@ class DocxTableExtractor : public TableExtractor
     Q_OBJECT
 
 public:
-    explicit DocxTableExtractor(QObject *parent = nullptr);
+    explicit DocxTableExtractor(QObject* parent = nullptr);
     virtual ~DocxTableExtractor();
 
     // 实现基类接口
-    bool isSupported(const QString &filePath) const override;
+    bool isSupported(const QString& filePath) const override;
     QStringList getSupportedFormats() const override;
-    ExtractStatus extractTables(const QString &filePath, QList<TableInfo> &tables) override;
-    ExtractStatus extractTablesByPosition(const QString &filePath, const QRect &position, QList<TableInfo> &tables) override;
-    int getTableCount(const QString &filePath) override;
+    ExtractStatus extractTables(const QString& filePath, QList<TableInfo>& tables) override;
+    ExtractStatus extractTablesByPosition(const QString& filePath, const QRect& position,
+                                          QList<TableInfo>& tables) override;
+    int getTableCount(const QString& filePath) override;
 
 protected:
     /**
@@ -42,7 +44,7 @@ protected:
      * @param internalPath 内部文件路径
      * @return 文件内容
      */
-    QByteArray readFileFromZip(const QString &zipPath, const QString &internalPath) const;
+    QByteArray readFileFromZip(const QString& zipPath, const QString& internalPath) const;
 
     /**
      * @brief 解析document.xml中的表格信息
@@ -50,7 +52,7 @@ protected:
      * @param tables 输出表格信息列表
      * @return 是否成功
      */
-    bool parseDocumentXml(const QByteArray &xmlContent, QList<TableInfo> &tables) const;
+    bool parseDocumentXml(const QByteArray& xmlContent, QList<TableInfo>& tables);
 
     /**
      * @brief 解析tbl元素
@@ -58,7 +60,7 @@ protected:
      * @param tables 输出表格信息列表
      * @return 是否成功
      */
-    bool parseTableElement(QXmlStreamReader &reader, QList<TableInfo> &tables) const;
+    bool parseTableElement(QXmlStreamReader& reader, QList<TableInfo>& tables);
 
     /**
      * @brief 解析tr元素（表格行）
@@ -66,7 +68,7 @@ protected:
      * @param table 表格信息（输出）
      * @return 是否成功
      */
-    bool parseTableRow(QXmlStreamReader &reader, TableInfo &table) const;
+    bool parseTableRow(QXmlStreamReader& reader, TableInfo& table);
 
     /**
      * @brief 解析tc元素（表格单元格）
@@ -74,7 +76,14 @@ protected:
      * @param cell 单元格信息（输出）
      * @return 是否成功
      */
-    bool parseTableCell(QXmlStreamReader &reader, CellInfo &cell) const;
+    bool parseTableCell(QXmlStreamReader& reader, CellInfo& cell) const;
+
+    /**
+     * @brief 解析tc元素（表格单元格）并返回内容
+     * @param reader XML读取器
+     * @return 单元格内容
+     */
+    QString parseTableCell(QXmlStreamReader& reader) const;
 
     /**
      * @brief 解析单元格内容
@@ -82,7 +91,7 @@ protected:
      * @param content 内容（输出）
      * @return 是否成功
      */
-    bool parseCellContent(QXmlStreamReader &reader, QString &content) const;
+    bool parseCellContent(QXmlStreamReader& reader, QString& content) const;
 
     /**
      * @brief 获取表格属性
@@ -90,7 +99,7 @@ protected:
      * @param properties 属性（输出）
      * @return 是否成功
      */
-    bool getTableProperties(QXmlStreamReader &reader, QJsonObject &properties) const;
+    bool getTableProperties(QXmlStreamReader& reader, QJsonObject& properties) const;
 
     /**
      * @brief 获取单元格属性
@@ -98,7 +107,7 @@ protected:
      * @param properties 属性（输出）
      * @return 是否成功
      */
-    bool getCellProperties(QXmlStreamReader &reader, QJsonObject &properties) const;
+    bool getCellProperties(QXmlStreamReader& reader, QJsonObject& properties) const;
 
     /**
      * @brief 获取表格在文档中的位置
@@ -106,14 +115,14 @@ protected:
      * @param position 位置（输出）
      * @return 是否成功
      */
-    bool getTablePosition(QXmlStreamReader &reader, QRect &position) const;
+    bool getTablePosition(QXmlStreamReader& reader, QRect& position) const;
 
     /**
      * @brief 计算表格尺寸
      * @param table 表格信息
      * @return 表格尺寸
      */
-    QSize calculateTableSize(const TableInfo &table) const;
+    QSize calculateTableSize(const TableInfo& table) const;
 
 private:
     static const QStringList SUPPORTED_EXTENSIONS;

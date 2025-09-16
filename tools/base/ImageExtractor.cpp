@@ -15,6 +15,7 @@
 #include <QImageWriter>
 #include <QBuffer>
 #include <QDebug>
+#include <QXmlStreamWriter>
 
 ImageExtractor::ImageExtractor(QObject *parent)
     : ContentExtractor(parent)
@@ -152,4 +153,120 @@ QString ImageExtractor::generateImageFileName(const ImageInfo &imageInfo)
 {
     QString fileName = QString("%1.%2").arg(imageInfo.id, imageInfo.format);
     return QDir(getOutputDirectory()).absoluteFilePath(fileName);
+}
+
+bool ImageExtractor::exportToXml(const ImageInfo &image, const QString &outputPath)
+{
+    QFile file(outputPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        setLastError(QString("无法创建XML文件: %1").arg(outputPath));
+        return false;
+    }
+
+    QXmlStreamWriter writer(&file);
+    writer.setAutoFormatting(true);
+    writer.setAutoFormattingIndent(2);
+
+    // 写入XML声明
+    writer.writeStartDocument("1.0", true);
+
+    // 写入根元素
+    writer.writeStartElement("Image");
+    writer.writeAttribute("id", image.id);
+    writer.writeAttribute("format", image.format);
+    writer.writeAttribute("width", QString::number(image.size.width()));
+    writer.writeAttribute("height", QString::number(image.size.height()));
+
+    // 写入图片数据（Base64编码）
+    writer.writeStartElement("Data");
+    writer.writeAttribute("encoding", "base64");
+    writer.writeCharacters(imageToBase64(image));
+    writer.writeEndElement(); // Data
+
+    // 写入保存路径
+    if (!image.savedPath.isEmpty()) {
+        writer.writeStartElement("SavedPath");
+        writer.writeCharacters(image.savedPath);
+        writer.writeEndElement(); // SavedPath
+    }
+
+    // 写入元数据
+    if (!image.metadata.isEmpty()) {
+        writer.writeStartElement("Metadata");
+        for (auto it = image.metadata.begin(); it != image.metadata.end(); ++it) {
+            writer.writeStartElement("Property");
+            writer.writeAttribute("name", it.key());
+            writer.writeCharacters(it.value().toString());
+            writer.writeEndElement(); // Property
+        }
+        writer.writeEndElement(); // Metadata
+    }
+
+    writer.writeEndElement(); // Image
+    writer.writeEndDocument();
+
+    file.close();
+    return true;
+}
+
+bool ImageExtractor::exportToXml(const QList<ImageInfo> &images, const QString &outputPath)
+{
+    QFile file(outputPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        setLastError(QString("无法创建XML文件: %1").arg(outputPath));
+        return false;
+    }
+
+    QXmlStreamWriter writer(&file);
+    writer.setAutoFormatting(true);
+    writer.setAutoFormattingIndent(2);
+
+    // 写入XML声明
+    writer.writeStartDocument("1.0", true);
+
+    // 写入根元素
+    writer.writeStartElement("Images");
+    writer.writeAttribute("count", QString::number(images.size()));
+
+    // 写入每个图片
+    for (const ImageInfo &image : images) {
+        writer.writeStartElement("Image");
+        writer.writeAttribute("id", image.id);
+        writer.writeAttribute("format", image.format);
+        writer.writeAttribute("width", QString::number(image.size.width()));
+        writer.writeAttribute("height", QString::number(image.size.height()));
+
+        // 写入图片数据（Base64编码）
+        writer.writeStartElement("Data");
+        writer.writeAttribute("encoding", "base64");
+        writer.writeCharacters(imageToBase64(image));
+        writer.writeEndElement(); // Data
+
+        // 写入保存路径
+        if (!image.savedPath.isEmpty()) {
+            writer.writeStartElement("SavedPath");
+            writer.writeCharacters(image.savedPath);
+            writer.writeEndElement(); // SavedPath
+        }
+
+        // 写入元数据
+        if (!image.metadata.isEmpty()) {
+            writer.writeStartElement("Metadata");
+            for (auto it = image.metadata.begin(); it != image.metadata.end(); ++it) {
+                writer.writeStartElement("Property");
+                writer.writeAttribute("name", it.key());
+                writer.writeCharacters(it.value().toString());
+                writer.writeEndElement(); // Property
+            }
+            writer.writeEndElement(); // Metadata
+        }
+
+        writer.writeEndElement(); // Image
+    }
+
+    writer.writeEndElement(); // Images
+    writer.writeEndDocument();
+
+    file.close();
+    return true;
 }

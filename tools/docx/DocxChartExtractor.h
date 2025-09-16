@@ -12,6 +12,7 @@
 #define DOCXCHARTEXTRACTOR_H
 
 #include "../base/ChartExtractor.h"
+#include "../../src/KZipUtils.h"
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 

@@ -17,6 +17,8 @@
 
 #include "src/XmlTestWidget.h"
 #include "src/TestWidget.h"
+#include "src/DocxContentTestWidget.h"
+#include "src/PdfContentTestWidget.h"
 
 int main(int argc, char* argv[])
 {
@@ -47,6 +49,14 @@ int main(int argc, char* argv[])
     // 添加测试工具标签页
     TestWidget *testWidget = new TestWidget();
     tabWidget->addTab(testWidget, QStringLiteral("测试工具"));
+    
+    // 添加DOCX内容提取测试标签页
+    DocxContentTestWidget *docxTestWidget = new DocxContentTestWidget();
+    tabWidget->addTab(docxTestWidget, QStringLiteral("DOCX内容提取"));
+    
+    // 添加PDF内容提取测试标签页
+    PdfContentTestWidget *pdfTestWidget = new PdfContentTestWidget();
+    tabWidget->addTab(pdfTestWidget, QStringLiteral("PDF内容提取"));
     
     // 设置布局
     QVBoxLayout *layout = new QVBoxLayout(&mainWindow);

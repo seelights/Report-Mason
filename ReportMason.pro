@@ -34,6 +34,8 @@ SOURCES += \
     src/LogSystem.cpp \
     src/XmlTestWidget.cpp \
     src/TestWidget.cpp \
+    src/DocxContentTestWidget.cpp \
+    src/PdfContentTestWidget.cpp \
     src/FileConverter.cpp \
     src/DocToXmlConverter.cpp \
     src/PdfToXmlConverter.cpp \
@@ -68,6 +70,8 @@ HEADERS += \
     src/LogSystem.h \
     src/XmlTestWidget.h \
     src/TestWidget.h \
+    src/DocxContentTestWidget.h \
+    src/PdfContentTestWidget.h \
     src/FileConverter.h \
     src/DocToXmlConverter.h \
     src/PdfToXmlConverter.h \

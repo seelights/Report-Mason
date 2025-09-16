@@ -144,6 +144,22 @@ public:
     virtual bool exportToCsv(const ChartInfo& chart, const QString& outputPath);
 
     /**
+     * @brief 将图表导出为XML格式
+     * @param chart 图表信息
+     * @param outputPath 输出路径
+     * @return 是否成功
+     */
+    virtual bool exportToXml(const ChartInfo& chart, const QString& outputPath);
+
+    /**
+     * @brief 将图表列表导出为XML格式
+     * @param charts 图表列表
+     * @param outputPath 输出路径
+     * @return 是否成功
+     */
+    virtual bool exportToXml(const QList<ChartInfo>& charts, const QString& outputPath);
+
+    /**
      * @brief 将图表转换为JSON对象
      * @param chart 图表信息
      * @return JSON对象

@@ -15,7 +15,7 @@
 
 /**
  * @brief PDF图片提取器
- * 
+ *
  * 专门用于从PDF文件中提取图片内容
  */
 class PdfImageExtractor : public ImageExtractor
@@ -23,16 +23,18 @@ class PdfImageExtractor : public ImageExtractor
     Q_OBJECT
 
 public:
-    explicit PdfImageExtractor(QObject *parent = nullptr);
+    explicit PdfImageExtractor(QObject* parent = nullptr);
     virtual ~PdfImageExtractor();
 
     // 实现基类接口
-    bool isSupported(const QString &filePath) const override;
+    bool isSupported(const QString& filePath) const override;
     QStringList getSupportedFormats() const override;
-    ExtractStatus extractImages(const QString &filePath, QList<ImageInfo> &images) override;
-    ExtractStatus extractImagesByType(const QString &filePath, const QString &imageType, QList<ImageInfo> &images) override;
-    ExtractStatus extractImagesByPosition(const QString &filePath, const QRect &position, QList<ImageInfo> &images) override;
-    int getImageCount(const QString &filePath) override;
+    ExtractStatus extractImages(const QString& filePath, QList<ImageInfo>& images) override;
+    ExtractStatus extractImagesByType(const QString& filePath, const QString& imageType,
+                                      QList<ImageInfo>& images) override;
+    ExtractStatus extractImagesByPosition(const QString& filePath, const QRect& position,
+                                          QList<ImageInfo>& images) override;
+    int getImageCount(const QString& filePath) override;
 
 protected:
     /**
@@ -41,7 +43,7 @@ protected:
      * @param images 输出图片信息列表
      * @return 是否成功
      */
-    bool parsePdfFile(const QString &filePath, QList<ImageInfo> &images) const;
+    bool parsePdfFile(const QString& filePath, QList<ImageInfo>& images);
 
     /**
      * @brief 提取页面中的图片
@@ -50,7 +52,8 @@ protected:
      * @param images 输出图片信息列表
      * @return 是否成功
      */
-    bool extractImagesFromPage(const QByteArray &pageContent, int pageNumber, QList<ImageInfo> &images) const;
+    bool extractImagesFromPage(const QByteArray& pageContent, int pageNumber,
+                               QList<ImageInfo>& images) const;
 
     /**
      * @brief 解析图片对象
@@ -58,7 +61,7 @@ protected:
      * @param imageInfo 图片信息（输出）
      * @return 是否成功
      */
-    bool parseImageObject(const QByteArray &imageData, ImageInfo &imageInfo) const;
+    bool parseImageObject(const QByteArray& imageData, ImageInfo& imageInfo) const;
 
     /**
      * @brief 获取图片在页面中的位置
@@ -67,7 +70,7 @@ protected:
      * @param position 位置（输出）
      * @return 是否成功
      */
-    bool getImagePosition(const QByteArray &pageContent, int imageIndex, QRect &position) const;
+    bool getImagePosition(const QByteArray& pageContent, int imageIndex, QRect& position) const;
 
     /**
      * @brief 获取图片尺寸
@@ -75,14 +78,14 @@ protected:
      * @param size 尺寸（输出）
      * @return 是否成功
      */
-    bool getImageSize(const QByteArray &imageData, QSize &size) const;
+    bool getImageSize(const QByteArray& imageData, QSize& size) const;
 
     /**
      * @brief 检测PDF中的图片格式
      * @param imageData 图片数据
      * @return 图片格式
      */
-    QString detectPdfImageFormat(const QByteArray &imageData) const;
+    QString detectPdfImageFormat(const QByteArray& imageData) const;
 
     /**
      * @brief 解码PDF图片数据
@@ -91,7 +94,8 @@ protected:
      * @param decodedData 解码后的数据（输出）
      * @return 是否成功
      */
-    bool decodePdfImageData(const QByteArray &encodedData, const QString &format, QByteArray &decodedData) const;
+    bool decodePdfImageData(const QByteArray& encodedData, const QString& format,
+                            QByteArray& decodedData) const;
 
 private:
     static const QStringList SUPPORTED_EXTENSIONS;

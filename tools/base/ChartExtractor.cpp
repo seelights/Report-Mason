@@ -14,6 +14,7 @@
 #include <QJsonDocument>
 #include <QStringConverter>
 #include <QDebug>
+#include <QXmlStreamWriter>
 
 ChartExtractor::ChartExtractor(QObject* parent) : ContentExtractor(parent)
 {
@@ -243,4 +244,168 @@ ChartType ChartExtractor::detectChartType(const QJsonObject& properties) const
 {
     QString chartType = properties["chartType"].toString().toLower();
     return stringToChartType(chartType);
+}
+
+bool ChartExtractor::exportToXml(const ChartInfo& chart, const QString& outputPath)
+{
+    QFile file(outputPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        setLastError(QString("无法创建XML文件: %1").arg(outputPath));
+        return false;
+    }
+
+    QXmlStreamWriter writer(&file);
+    writer.setAutoFormatting(true);
+    writer.setAutoFormattingIndent(2);
+
+    // 写入XML声明
+    writer.writeStartDocument("1.0", true);
+
+    // 写入根元素
+    writer.writeStartElement("Chart");
+    writer.writeAttribute("id", chart.id);
+    writer.writeAttribute("type", QString::number(static_cast<int>(chart.type)));
+    writer.writeAttribute("title", chart.title);
+
+    // 写入数据系列
+    writer.writeStartElement("DataSeries");
+    writer.writeAttribute("count", QString::number(chart.series.size()));
+    
+    for (const DataSeries& series : chart.series) {
+        writer.writeStartElement("Series");
+        writer.writeAttribute("name", series.name);
+        
+        // 写入标签
+        writer.writeStartElement("Labels");
+        for (const QString& label : series.labels) {
+            writer.writeStartElement("Label");
+            writer.writeCharacters(label);
+            writer.writeEndElement(); // Label
+        }
+        writer.writeEndElement(); // Labels
+        
+        // 写入数值
+        writer.writeStartElement("Values");
+        for (double value : series.values) {
+            writer.writeStartElement("Value");
+            writer.writeCharacters(QString::number(value));
+            writer.writeEndElement(); // Value
+        }
+        writer.writeEndElement(); // Values
+        
+        writer.writeEndElement(); // Series
+    }
+    writer.writeEndElement(); // DataSeries
+
+    // 写入图片数据（如果有）
+    if (!chart.imageData.isEmpty()) {
+        writer.writeStartElement("ImageData");
+        writer.writeAttribute("encoding", "base64");
+        writer.writeCharacters(encodeToBase64(chart.imageData));
+        writer.writeEndElement(); // ImageData
+    }
+
+    // 写入属性
+    if (!chart.properties.isEmpty()) {
+        writer.writeStartElement("Properties");
+        for (auto it = chart.properties.begin(); it != chart.properties.end(); ++it) {
+            writer.writeStartElement("Property");
+            writer.writeAttribute("name", it.key());
+            writer.writeCharacters(it.value().toString());
+            writer.writeEndElement(); // Property
+        }
+        writer.writeEndElement(); // Properties
+    }
+
+    writer.writeEndElement(); // Chart
+    writer.writeEndDocument();
+
+    file.close();
+    return true;
+}
+
+bool ChartExtractor::exportToXml(const QList<ChartInfo>& charts, const QString& outputPath)
+{
+    QFile file(outputPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        setLastError(QString("无法创建XML文件: %1").arg(outputPath));
+        return false;
+    }
+
+    QXmlStreamWriter writer(&file);
+    writer.setAutoFormatting(true);
+    writer.setAutoFormattingIndent(2);
+
+    // 写入XML声明
+    writer.writeStartDocument("1.0", true);
+
+    // 写入根元素
+    writer.writeStartElement("Charts");
+    writer.writeAttribute("count", QString::number(charts.size()));
+
+    // 写入每个图表
+    for (const ChartInfo& chart : charts) {
+        writer.writeStartElement("Chart");
+        writer.writeAttribute("id", chart.id);
+        writer.writeAttribute("type", QString::number(static_cast<int>(chart.type)));
+        writer.writeAttribute("title", chart.title);
+
+        // 写入数据系列
+        writer.writeStartElement("DataSeries");
+        writer.writeAttribute("count", QString::number(chart.series.size()));
+        
+        for (const DataSeries& series : chart.series) {
+            writer.writeStartElement("Series");
+            writer.writeAttribute("name", series.name);
+            
+            // 写入标签
+            writer.writeStartElement("Labels");
+            for (const QString& label : series.labels) {
+                writer.writeStartElement("Label");
+                writer.writeCharacters(label);
+                writer.writeEndElement(); // Label
+            }
+            writer.writeEndElement(); // Labels
+            
+            // 写入数值
+            writer.writeStartElement("Values");
+            for (double value : series.values) {
+                writer.writeStartElement("Value");
+                writer.writeCharacters(QString::number(value));
+                writer.writeEndElement(); // Value
+            }
+            writer.writeEndElement(); // Values
+            
+            writer.writeEndElement(); // Series
+        }
+        writer.writeEndElement(); // DataSeries
+
+        // 写入图片数据（如果有）
+        if (!chart.imageData.isEmpty()) {
+            writer.writeStartElement("ImageData");
+            writer.writeAttribute("encoding", "base64");
+            writer.writeCharacters(encodeToBase64(chart.imageData));
+            writer.writeEndElement(); // ImageData
+        }
+
+        // 写入属性
+        if (!chart.properties.isEmpty()) {
+            writer.writeStartElement("Properties");
+            for (auto it = chart.properties.begin(); it != chart.properties.end(); ++it) {
+                writer.writeStartElement("Property");
+                writer.writeAttribute("name", it.key());
+                writer.writeCharacters(it.value().toString());
+                writer.writeEndElement(); // Property
+            }
+            writer.writeEndElement(); // Properties
+        }
+
+        writer.writeEndElement(); // Chart
+    }
+
+    writer.writeEndElement(); // Charts
+    writer.writeEndDocument();
+
+    file.close();
+    return true;
 }

@@ -1,5 +1,14 @@
 /*
  * @Author: seelights
+ * @Date: 2025-09-15 19:05:35
+ * @LastEditTime: 2025-09-15 23:17:18
+ * @LastEditors: seelights
+ * @Description: 
+ * @FilePath: \ReportMason\tools\base\ContentExtractor.h
+ * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
+ */
+/*
+ * @Author: seelights
  * @Date: 2025-09-15 19:05:00
  * @LastEditTime: 2025-09-15 19:29:46
  * @LastEditors: seelights

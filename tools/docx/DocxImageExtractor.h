@@ -12,6 +12,7 @@
 #define DOCXIMAGEEXTRACTOR_H
 
 #include "../base/ImageExtractor.h"
+#include "../../src/KZipUtils.h"
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 
@@ -122,12 +123,41 @@ protected:
     bool getImageSize(QXmlStreamReader &reader, QSize &size) const;
 
     /**
+     * @brief 获取图片尺寸
+     * @param imageData 图片数据
+     * @return 图片尺寸
+     */
+    QSize getImageSize(const QByteArray &imageData) const;
+
+    /**
      * @brief 获取图片描述
      * @param reader XML读取器
      * @param description 描述（输出）
      * @return 是否成功
      */
     bool getImageDescription(QXmlStreamReader &reader, QString &description) const;
+
+    /**
+     * @brief 解析图片关系文件
+     * @param relationshipsXml 关系XML内容
+     * @return 图片关系映射
+     */
+    QMap<QString, QString> parseImageRelationships(const QByteArray &relationshipsXml) const;
+
+    /**
+     * @brief 从document.xml中提取图片引用
+     * @param documentXml document.xml内容
+     * @return 图片引用列表
+     */
+    QList<QString> extractImageReferences(const QByteArray &documentXml) const;
+
+    /**
+     * @brief 从图片数据创建图片信息
+     * @param imageData 图片数据
+     * @param imagePath 图片路径
+     * @return 图片信息
+     */
+    ImageInfo createImageInfoFromData(const QByteArray &imageData, const QString &imagePath);
 
 private:
     static const QStringList SUPPORTED_EXTENSIONS;

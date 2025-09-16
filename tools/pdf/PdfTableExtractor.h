@@ -15,7 +15,7 @@
 
 /**
  * @brief PDF表格提取器
- * 
+ *
  * 专门用于从PDF文件中提取表格内容
  */
 class PdfTableExtractor : public TableExtractor
@@ -23,15 +23,16 @@ class PdfTableExtractor : public TableExtractor
     Q_OBJECT
 
 public:
-    explicit PdfTableExtractor(QObject *parent = nullptr);
+    explicit PdfTableExtractor(QObject* parent = nullptr);
     virtual ~PdfTableExtractor();
 
     // 实现基类接口
-    bool isSupported(const QString &filePath) const override;
+    bool isSupported(const QString& filePath) const override;
     QStringList getSupportedFormats() const override;
-    ExtractStatus extractTables(const QString &filePath, QList<TableInfo> &tables) override;
-    ExtractStatus extractTablesByPosition(const QString &filePath, const QRect &position, QList<TableInfo> &tables) override;
-    int getTableCount(const QString &filePath) override;
+    ExtractStatus extractTables(const QString& filePath, QList<TableInfo>& tables) override;
+    ExtractStatus extractTablesByPosition(const QString& filePath, const QRect& position,
+                                          QList<TableInfo>& tables) override;
+    int getTableCount(const QString& filePath) override;
 
 protected:
     /**
@@ -40,7 +41,7 @@ protected:
      * @param tables 输出表格信息列表
      * @return 是否成功
      */
-    bool parsePdfFile(const QString &filePath, QList<TableInfo> &tables) const;
+    bool parsePdfFile(const QString& filePath, QList<TableInfo>& tables);
 
     /**
      * @brief 提取页面中的表格
@@ -49,7 +50,8 @@ protected:
      * @param tables 输出表格信息列表
      * @return 是否成功
      */
-    bool extractTablesFromPage(const QByteArray &pageContent, int pageNumber, QList<TableInfo> &tables) const;
+    bool extractTablesFromPage(const QByteArray& pageContent, int pageNumber,
+                               QList<TableInfo>& tables) const;
 
     /**
      * @brief 检测表格边界
@@ -57,7 +59,7 @@ protected:
      * @param tableRegions 表格区域列表（输出）
      * @return 是否成功
      */
-    bool detectTableBoundaries(const QByteArray &pageContent, QList<QRect> &tableRegions) const;
+    bool detectTableBoundaries(const QByteArray& pageContent, QList<QRect>& tableRegions) const;
 
     /**
      * @brief 解析表格内容
@@ -66,7 +68,8 @@ protected:
      * @param table 表格信息（输出）
      * @return 是否成功
      */
-    bool parseTableContent(const QByteArray &pageContent, const QRect &tableRegion, TableInfo &table) const;
+    bool parseTableContent(const QByteArray& pageContent, const QRect& tableRegion,
+                           TableInfo& table) const;
 
     /**
      * @brief 识别表格单元格
@@ -75,7 +78,8 @@ protected:
      * @param cells 单元格列表（输出）
      * @return 是否成功
      */
-    bool identifyTableCells(const QByteArray &pageContent, const QRect &tableRegion, QList<CellInfo> &cells) const;
+    bool identifyTableCells(const QByteArray& pageContent, const QRect& tableRegion,
+                            QList<CellInfo>& cells) const;
 
     /**
      * @brief 获取表格在页面中的位置
@@ -84,14 +88,14 @@ protected:
      * @param position 位置（输出）
      * @return 是否成功
      */
-    bool getTablePosition(const QByteArray &pageContent, int tableIndex, QRect &position) const;
+    bool getTablePosition(const QByteArray& pageContent, int tableIndex, QRect& position) const;
 
     /**
      * @brief 验证表格结构
      * @param table 表格信息
      * @return 是否有效
      */
-    bool validateTableStructure(const TableInfo &table) const;
+    bool validateTableStructure(const TableInfo& table) const;
 
 private:
     static const QStringList SUPPORTED_EXTENSIONS;

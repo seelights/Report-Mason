@@ -15,7 +15,7 @@
 
 /**
  * @brief PDF图表提取器
- * 
+ *
  * 专门用于从PDF文件中提取图表内容
  */
 class PdfChartExtractor : public ChartExtractor
@@ -23,16 +23,18 @@ class PdfChartExtractor : public ChartExtractor
     Q_OBJECT
 
 public:
-    explicit PdfChartExtractor(QObject *parent = nullptr);
+    explicit PdfChartExtractor(QObject* parent = nullptr);
     virtual ~PdfChartExtractor();
 
     // 实现基类接口
-    bool isSupported(const QString &filePath) const override;
+    bool isSupported(const QString& filePath) const override;
     QStringList getSupportedFormats() const override;
-    ExtractStatus extractCharts(const QString &filePath, QList<ChartInfo> &charts) override;
-    ExtractStatus extractChartsByType(const QString &filePath, ChartType chartType, QList<ChartInfo> &charts) override;
-    ExtractStatus extractChartsByPosition(const QString &filePath, const QRect &position, QList<ChartInfo> &charts) override;
-    int getChartCount(const QString &filePath) override;
+    ExtractStatus extractCharts(const QString& filePath, QList<ChartInfo>& charts) override;
+    ExtractStatus extractChartsByType(const QString& filePath, ChartType chartType,
+                                      QList<ChartInfo>& charts) override;
+    ExtractStatus extractChartsByPosition(const QString& filePath, const QRect& position,
+                                          QList<ChartInfo>& charts) override;
+    int getChartCount(const QString& filePath) override;
 
 protected:
     /**
@@ -41,7 +43,7 @@ protected:
      * @param charts 输出图表信息列表
      * @return 是否成功
      */
-    bool parsePdfFile(const QString &filePath, QList<ChartInfo> &charts) const;
+    bool parsePdfFile(const QString& filePath, QList<ChartInfo>& charts);
 
     /**
      * @brief 提取页面中的图表
@@ -50,7 +52,8 @@ protected:
      * @param charts 输出图表信息列表
      * @return 是否成功
      */
-    bool extractChartsFromPage(const QByteArray &pageContent, int pageNumber, QList<ChartInfo> &charts) const;
+    bool extractChartsFromPage(const QByteArray& pageContent, int pageNumber,
+                               QList<ChartInfo>& charts) const;
 
     /**
      * @brief 检测图表区域
@@ -58,7 +61,7 @@ protected:
      * @param chartRegions 图表区域列表（输出）
      * @return 是否成功
      */
-    bool detectChartRegions(const QByteArray &pageContent, QList<QRect> &chartRegions) const;
+    bool detectChartRegions(const QByteArray& pageContent, QList<QRect>& chartRegions) const;
 
     /**
      * @brief 解析图表内容
@@ -67,7 +70,8 @@ protected:
      * @param chart 图表信息（输出）
      * @return 是否成功
      */
-    bool parseChartContent(const QByteArray &pageContent, const QRect &chartRegion, ChartInfo &chart) const;
+    bool parseChartContent(const QByteArray& pageContent, const QRect& chartRegion,
+                           ChartInfo& chart) const;
 
     /**
      * @brief 识别图表类型
@@ -75,7 +79,7 @@ protected:
      * @param chartRegion 图表区域
      * @return 图表类型
      */
-    ChartType identifyChartType(const QByteArray &pageContent, const QRect &chartRegion) const;
+    ChartType identifyChartType(const QByteArray& pageContent, const QRect& chartRegion) const;
 
     /**
      * @brief 提取图表数据
@@ -84,7 +88,8 @@ protected:
      * @param series 数据系列（输出）
      * @return 是否成功
      */
-    bool extractChartData(const QByteArray &pageContent, const QRect &chartRegion, QList<DataSeries> &series) const;
+    bool extractChartData(const QByteArray& pageContent, const QRect& chartRegion,
+                          QList<DataSeries>& series) const;
 
     /**
      * @brief 获取图表在页面中的位置
@@ -93,7 +98,7 @@ protected:
      * @param position 位置（输出）
      * @return 是否成功
      */
-    bool getChartPosition(const QByteArray &pageContent, int chartIndex, QRect &position) const;
+    bool getChartPosition(const QByteArray& pageContent, int chartIndex, QRect& position) const;
 
     /**
      * @brief 获取图表尺寸
@@ -102,14 +107,14 @@ protected:
      * @param size 尺寸（输出）
      * @return 是否成功
      */
-    bool getChartSize(const QByteArray &pageContent, const QRect &chartRegion, QSize &size) const;
+    bool getChartSize(const QByteArray& pageContent, const QRect& chartRegion, QSize& size) const;
 
     /**
      * @brief 验证图表数据
      * @param chart 图表信息
      * @return 是否有效
      */
-    bool validateChartData(const ChartInfo &chart) const;
+    bool validateChartData(const ChartInfo& chart) const;
 
 private:
     static const QStringList SUPPORTED_EXTENSIONS;

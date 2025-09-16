@@ -124,6 +124,22 @@ public:
     virtual bool exportToJson(const TableInfo& table, const QString& outputPath);
 
     /**
+     * @brief 将表格导出为XML格式
+     * @param table 表格信息
+     * @param outputPath 输出路径
+     * @return 是否成功
+     */
+    virtual bool exportToXml(const TableInfo& table, const QString& outputPath);
+
+    /**
+     * @brief 将表格列表导出为XML格式
+     * @param tables 表格列表
+     * @param outputPath 输出路径
+     * @return 是否成功
+     */
+    virtual bool exportToXml(const QList<TableInfo>& tables, const QString& outputPath);
+
+    /**
      * @brief 将表格转换为JSON对象
      * @param table 表格信息
      * @return JSON对象

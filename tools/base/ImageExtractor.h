@@ -99,6 +99,22 @@ public:
     virtual QString imageToBase64(const ImageInfo &image) const;
 
     /**
+     * @brief 将图片导出为XML格式
+     * @param image 图片信息
+     * @param outputPath 输出路径
+     * @return 是否成功
+     */
+    virtual bool exportToXml(const ImageInfo &image, const QString &outputPath);
+
+    /**
+     * @brief 将图片列表导出为XML格式
+     * @param images 图片列表
+     * @param outputPath 输出路径
+     * @return 是否成功
+     */
+    virtual bool exportToXml(const QList<ImageInfo> &images, const QString &outputPath);
+
+    /**
      * @brief 从Base64创建图片信息
      * @param base64String Base64编码字符串
      * @param format 图片格式
