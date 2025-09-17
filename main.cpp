@@ -25,9 +25,9 @@ int main(int argc, char* argv[])
     QApplication app(argc, argv);
 
     // 设置应用程序信息
-    app.setApplicationName("ReportMason");
-    app.setApplicationVersion("1.0.0");
-    app.setOrganizationName("ReportMason");
+    app.setApplicationName(QS("ReportMason"));
+    app.setApplicationVersion(QS("1.0.0"));
+    app.setOrganizationName(QS("ReportMason"));
 
     qDebug() << "=== ReportMason 启动 ===";
     qDebug() << "应用程序名称:" << app.applicationName();
@@ -36,32 +36,32 @@ int main(int argc, char* argv[])
 
     // 创建主窗口
     QWidget mainWindow;
-    mainWindow.setWindowTitle(QStringLiteral("ReportMason - 文档处理工具"));
+    mainWindow.setWindowTitle(QS("ReportMason - 文档处理工具"));
     mainWindow.setMinimumSize(1200, 800);
-    
+
     // 创建标签页
-    QTabWidget *tabWidget = new QTabWidget(&mainWindow);
-    
+    QTabWidget* tabWidget = new QTabWidget(&mainWindow);
+
     // 添加XML测试工具标签页
-    XmlTestWidget *xmlTestWidget = new XmlTestWidget();
+    XmlTestWidget* xmlTestWidget = new XmlTestWidget();
     tabWidget->addTab(xmlTestWidget, QStringLiteral("XML测试工具"));
-    
+
     // 添加测试工具标签页
-    TestWidget *testWidget = new TestWidget();
+    TestWidget* testWidget = new TestWidget();
     tabWidget->addTab(testWidget, QStringLiteral("测试工具"));
-    
+
     // 添加DOCX内容提取测试标签页
-    DocxContentTestWidget *docxTestWidget = new DocxContentTestWidget();
+    DocxContentTestWidget* docxTestWidget = new DocxContentTestWidget();
     tabWidget->addTab(docxTestWidget, QStringLiteral("DOCX内容提取"));
-    
+
     // 添加PDF内容提取测试标签页
-    PdfContentTestWidget *pdfTestWidget = new PdfContentTestWidget();
+    PdfContentTestWidget* pdfTestWidget = new PdfContentTestWidget();
     tabWidget->addTab(pdfTestWidget, QStringLiteral("PDF内容提取"));
-    
+
     // 设置布局
-    QVBoxLayout *layout = new QVBoxLayout(&mainWindow);
+    QVBoxLayout* layout = new QVBoxLayout(&mainWindow);
     layout->addWidget(tabWidget);
-    
+
     mainWindow.show();
 
     qDebug() << "主窗口已显示";

@@ -8,6 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
+#include "QtCompat.h"
 #include "KZipUtils.h"
 #include "kzip.h"
 #include "karchivedirectory.h"
@@ -213,7 +214,7 @@ QStringList KZipUtils::getFilesRecursive(const KArchiveDirectory* dir, const QSt
 
     for (const QString& entryName : entries) {
         const KArchiveEntry* entry = dir->entry(entryName);
-        QString fullPath = prefix.isEmpty() ? entryName : prefix + "/" + entryName;
+        QString fullPath = prefix.isEmpty() ? entryName : prefix + QS("/") + entryName;
 
         if (entry->isFile()) {
             files.append(fullPath);

@@ -1,7 +1,7 @@
 /*
  * FieldExtractor.cpp
  * 字段提取器实现
- * 
+ *
  * @Author: seelights@git.cn
  * @Date: 2025-01-27
  * @Description: 实现从文档中提取结构化字段的功能
@@ -9,6 +9,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
+#include "QtCompat.h"
 #include "FieldExtractor.h"
 #include <QRegularExpression>
 #include <QDebug>
@@ -20,62 +21,42 @@
 #include <QDir>
 #include <QStandardPaths>
 
-FieldExtractor::FieldExtractor(QObject *parent)
-    : QObject(parent)
-    , m_strategy(ExtractionStrategy::REGEX_PATTERN)
-    , m_caseSensitive(false)
-    , m_multilineMode(false)
+FieldExtractor::FieldExtractor(QObject* parent)
+    : QObject(parent), m_strategy(ExtractionStrategy::REGEX_PATTERN), m_caseSensitive(false),
+      m_multilineMode(false)
 {
     initializePredefinedRules();
     loadConfiguration();
 }
 
-FieldExtractor::~FieldExtractor()
-{
-    saveConfiguration();
-}
+FieldExtractor::~FieldExtractor() { saveConfiguration(); }
 
-void FieldExtractor::setExtractionStrategy(ExtractionStrategy strategy)
-{
-    m_strategy = strategy;
-}
+void FieldExtractor::setExtractionStrategy(ExtractionStrategy strategy) { m_strategy = strategy; }
 
 FieldExtractor::ExtractionStrategy FieldExtractor::getExtractionStrategy() const
 {
     return m_strategy;
 }
 
-void FieldExtractor::setCaseSensitive(bool caseSensitive)
-{
-    m_caseSensitive = caseSensitive;
-}
+void FieldExtractor::setCaseSensitive(bool caseSensitive) { m_caseSensitive = caseSensitive; }
 
-bool FieldExtractor::isCaseSensitive() const
-{
-    return m_caseSensitive;
-}
+bool FieldExtractor::isCaseSensitive() const { return m_caseSensitive; }
 
-void FieldExtractor::setMultilineMode(bool multilineMode)
-{
-    m_multilineMode = multilineMode;
-}
+void FieldExtractor::setMultilineMode(bool multilineMode) { m_multilineMode = multilineMode; }
 
-bool FieldExtractor::isMultilineMode() const
-{
-    return m_multilineMode;
-}
+bool FieldExtractor::isMultilineMode() const { return m_multilineMode; }
 
-void FieldExtractor::addExtractionRule(const QString &fieldName, const ExtractionRule &rule)
+void FieldExtractor::addExtractionRule(const QString& fieldName, const ExtractionRule& rule)
 {
     m_extractionRules[fieldName] = rule;
 }
 
-void FieldExtractor::removeExtractionRule(const QString &fieldName)
+void FieldExtractor::removeExtractionRule(const QString& fieldName)
 {
     m_extractionRules.remove(fieldName);
 }
 
-FieldExtractor::ExtractionRule FieldExtractor::getExtractionRule(const QString &fieldName) const
+FieldExtractor::ExtractionRule FieldExtractor::getExtractionRule(const QString& fieldName) const
 {
     return m_extractionRules.value(fieldName, ExtractionRule());
 }
@@ -85,42 +66,39 @@ QMap<QString, FieldExtractor::ExtractionRule> FieldExtractor::getAllRules() cons
     return m_extractionRules;
 }
 
-void FieldExtractor::clearRules()
-{
-    m_extractionRules.clear();
-}
+void FieldExtractor::clearRules() { m_extractionRules.clear(); }
 
-QMap<QString, QString> FieldExtractor::extractFields(const QString &content)
+QMap<QString, QString> FieldExtractor::extractFields(const QString& content)
 {
     QMap<QString, QString> extractedFields;
-    
+
     if (content.isEmpty()) {
         return extractedFields;
     }
-    
+
     QString processedContent = preprocessContent(content);
-    
+
     // 遍历所有提取规则
     for (auto it = m_extractionRules.begin(); it != m_extractionRules.end(); ++it) {
-        const ExtractionRule &rule = it.value();
-        
+        const ExtractionRule& rule = it.value();
+
         if (!rule.enabled) {
             continue;
         }
-        
+
         QString extractedValue = extractFieldValue(processedContent, rule);
         if (!extractedValue.isEmpty()) {
             extractedFields[it.key()] = extractedValue;
         }
     }
-    
+
     return extractedFields;
 }
 
-QString FieldExtractor::extractFieldValue(const QString &content, const ExtractionRule &rule)
+QString FieldExtractor::extractFieldValue(const QString& content, const ExtractionRule& rule)
 {
     QString result;
-    
+
     switch (m_strategy) {
     case ExtractionStrategy::REGEX_PATTERN:
         result = extractUsingRegex(content, rule);
@@ -135,23 +113,24 @@ QString FieldExtractor::extractFieldValue(const QString &content, const Extracti
         result = extractUsingRegex(content, rule);
         break;
     }
-    
+
     return result;
 }
 
-QString FieldExtractor::extractUsingRegex(const QString &content, const ExtractionRule &rule)
+QString FieldExtractor::extractUsingRegex(const QString& content, const ExtractionRule& rule)
 {
     QString result;
-    
+
     // 尝试每个正则表达式模式
-    for (const QString &pattern : rule.regexPatterns) {
+    for (const QString& pattern : rule.regexPatterns) {
         QRegularExpression regex(pattern);
-        regex.setPatternOptions(m_caseSensitive ? QRegularExpression::NoPatternOption : QRegularExpression::CaseInsensitiveOption);
-        
+        regex.setPatternOptions(m_caseSensitive ? QRegularExpression::NoPatternOption
+                                                : QRegularExpression::CaseInsensitiveOption);
+
         if (m_multilineMode) {
             regex.setPatternOptions(regex.patternOptions() | QRegularExpression::MultilineOption);
         }
-        
+
         QRegularExpressionMatch match = regex.match(content);
         if (match.hasMatch()) {
             result = match.captured(1).trimmed();
@@ -160,42 +139,44 @@ QString FieldExtractor::extractUsingRegex(const QString &content, const Extracti
             }
         }
     }
-    
+
     return result;
 }
 
-QString FieldExtractor::extractUsingKeywords(const QString &content, const ExtractionRule &rule)
+QString FieldExtractor::extractUsingKeywords(const QString& content, const ExtractionRule& rule)
 {
     QString result;
-    
+
     // 查找关键词
-    for (const QString &keyword : rule.keywords) {
-        int keywordPos = content.indexOf(keyword, 0, m_caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive);
+    for (const QString& keyword : rule.keywords) {
+        int keywordPos =
+            content.indexOf(keyword, 0, m_caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive);
         if (keywordPos != -1) {
             // 提取关键词后的内容
             int startPos = keywordPos + keyword.length();
             QString remaining = content.mid(startPos).trimmed();
-            
+
             // 查找下一个关键词或行尾
             int endPos = remaining.length();
-            for (const QString &nextKeyword : rule.keywords) {
-                int nextPos = remaining.indexOf(nextKeyword, 0, m_caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive);
+            for (const QString& nextKeyword : rule.keywords) {
+                int nextPos = remaining.indexOf(
+                    nextKeyword, 0, m_caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive);
                 if (nextPos != -1 && nextPos < endPos) {
                     endPos = nextPos;
                 }
             }
-            
+
             result = remaining.left(endPos).trimmed();
             if (!result.isEmpty()) {
                 break;
             }
         }
     }
-    
+
     return result;
 }
 
-QString FieldExtractor::extractUsingPosition(const QString &content, const ExtractionRule &rule)
+QString FieldExtractor::extractUsingPosition(const QString& content, const ExtractionRule& rule)
 {
     // 基于位置的提取逻辑
     // 这里可以根据具体需求实现
@@ -203,19 +184,19 @@ QString FieldExtractor::extractUsingPosition(const QString &content, const Extra
     return QString();
 }
 
-QString FieldExtractor::preprocessContent(const QString &content)
+QString FieldExtractor::preprocessContent(const QString& content)
 {
     QString processed = content;
-    
+
     // 移除多余的空白字符
     processed = processed.simplified();
-    
+
     // 统一换行符
-    processed.replace(QRegularExpression("\\r\\n|\\r"), "\\n");
-    
+    processed.replace(QRegularExpression(QS("\\r\\n|\\r")), QS("\\n"));
+
     // 移除特殊字符（可选）
     // processed.remove(QRegularExpression("[\\x00-\\x1F\\x7F]"));
-    
+
     return processed;
 }
 
@@ -223,162 +204,175 @@ void FieldExtractor::initializePredefinedRules()
 {
     // 预定义的提取规则
     m_extractionRules.clear();
-    
+
     // Title规则
     ExtractionRule titleRule;
-    titleRule.fieldName = "Title";
-    titleRule.displayName = "实验标题";
-    titleRule.description = "实验标题";
-    titleRule.regexPatterns = {"实验标题[：:]\\s*(.+?)(?:\\n|$)", "实验名称[：:]\\s*(.+?)(?:\\n|$)", "实验标题[：:]\\s*(.+?)(?:\\n|$)"};
-    titleRule.keywords = {"实验标题", "实验名称", "实验标题", "实验目的"};
+    titleRule.fieldName = QS("Title");
+    titleRule.displayName = QS("实验标题");
+    titleRule.description = QS("实验标题");
+    titleRule.regexPatterns = {QS("实验标题[：:]\\s*(.+?)(?:\\n|$)"),
+                               QS("实验名称[：:]\\s*(.+?)(?:\\n|$)"),
+                               QS("实验标题[：:]\\s*(.+?)(?:\\n|$)")};
+    titleRule.keywords = {QS("实验标题"), QS("实验名称"), QS("实验标题"), QS("实验目的")};
     titleRule.enabled = true;
-    titleRule.defaultValue = "";
-    titleRule.tags = {"title", "name", "subject"};
+    titleRule.defaultValue = QS("");
+    titleRule.tags = {QS("title"), QS("name"), QS("subject")};
     titleRule.strategy = ExtractionStrategy::REGEX_PATTERN;
-    m_extractionRules["Title"] = titleRule;
-    
+    m_extractionRules[QS("Title")] = titleRule;
+
     // StudentName规则
     ExtractionRule studentNameRule;
-    studentNameRule.fieldName = "StudentName";
-    studentNameRule.displayName = "学生姓名";
-    studentNameRule.description = "学生姓名";
-    studentNameRule.regexPatterns = {"学生姓名[：:]\\s*(.+?)(?:\\n|$)", "姓名[：:]\\s*(.+?)(?:\\n|$)", "学生姓名\\s*([^\\s\\n]+)"};
-    studentNameRule.keywords = {"学生姓名", "姓名", "学生姓名"};
+    studentNameRule.fieldName = QS("StudentName");
+    studentNameRule.displayName = QS("学生姓名");
+    studentNameRule.description = QS("学生姓名");
+    studentNameRule.regexPatterns = {QS("学生姓名[：:]\\s*(.+?)(?:\\n|$)"),
+                                     QS("姓名[：:]\\s*(.+?)(?:\\n|$)"),
+                                     QS("学生姓名\\s*([^\\s\\n]+)")};
+    studentNameRule.keywords = {QS("学生姓名"), QS("姓名"), QS("学生姓名")};
     studentNameRule.enabled = true;
-    studentNameRule.defaultValue = "";
-    studentNameRule.tags = {"name", "student"};
+    studentNameRule.defaultValue = QS("");
+    studentNameRule.tags = {QS("name"), QS("student")};
     studentNameRule.strategy = ExtractionStrategy::REGEX_PATTERN;
-    m_extractionRules["StudentName"] = studentNameRule;
-    
+    m_extractionRules[QS("StudentName")] = studentNameRule;
+
     // StudentID规则
     ExtractionRule studentIDRule;
-    studentIDRule.fieldName = "StudentID";
-    studentIDRule.displayName = "学生学号";
-    studentIDRule.description = "学生学号";
-    studentIDRule.regexPatterns = {"学生学号[：:]\\s*([0-9]+)", "学号[：:]\\s*([0-9]+)", "ID[：:]\\s*([0-9]+)"};
-    studentIDRule.keywords = {"学生学号", "ID", "学生学号"};
+    studentIDRule.fieldName = QS("StudentID");
+    studentIDRule.displayName = QS("学生学号");
+    studentIDRule.description = QS("学生学号");
+    studentIDRule.regexPatterns = {QS("学生学号[：:]\\s*([0-9]+)"), QS("学号[：:]\\s*([0-9]+)"),
+                                   QS("ID[：:]\\s*([0-9]+)")};
+    studentIDRule.keywords = {QS("学生学号"), QS("ID"), QS("学生学号")};
     studentIDRule.enabled = true;
-    studentIDRule.defaultValue = "";
-    studentIDRule.tags = {"id", "student_id"};
+    studentIDRule.defaultValue = QS("");
+    studentIDRule.tags = {QS("id"), QS("student_id")};
     studentIDRule.strategy = ExtractionStrategy::REGEX_PATTERN;
-    m_extractionRules["StudentID"] = studentIDRule;
-    
+    m_extractionRules[QS("StudentID")] = studentIDRule;
+
     // Class规则
     ExtractionRule classRule;
-    classRule.fieldName = "Class";
-    classRule.displayName = "班级";
-    classRule.description = "班级";
-    classRule.regexPatterns = {"班级[：:]\\s*(.+?)(?:\\n|$)", "班级\\s*([^\\s\\n]+)", "专业班级[：:]\\s*(.+?)(?:\\n|$)"};
-    classRule.keywords = {"班级", "专业班级", "班级名称"};
+    classRule.fieldName = QS("Class");
+    classRule.displayName = QS("班级");
+    classRule.description = QS("班级");
+    classRule.regexPatterns = {QS("班级[：:]\\s*(.+?)(?:\\n|$)"), QS("班级\\s*([^\\s\\n]+)"),
+                               QS("专业班级[：:]\\s*(.+?)(?:\\n|$)")};
+    classRule.keywords = {QS("班级"), QS("专业班级"), QS("班级名称")};
     classRule.enabled = false;
-    classRule.defaultValue = "";
-    classRule.tags = {"class", "major"};
+    classRule.defaultValue = QS("");
+    classRule.tags = {QS("class"), QS("major")};
     classRule.strategy = ExtractionStrategy::REGEX_PATTERN;
-    m_extractionRules["Class"] = classRule;
-    
+    m_extractionRules[QS("Class")] = classRule;
+
     // Abstract规则
     ExtractionRule abstractRule;
-    abstractRule.fieldName = "Abstract";
-    abstractRule.displayName = "摘要";
-    abstractRule.description = "摘要";
-    abstractRule.regexPatterns = {"摘要[：:]\\s*(.+?)(?=关键词|结论|$)", "实验摘要[：:]\\s*(.+?)(?=关键词|结论|$)"};
-    abstractRule.keywords = {"摘要", "实验摘要", "内容摘要"};
+    abstractRule.fieldName = QS("Abstract");
+    abstractRule.displayName = QS("摘要");
+    abstractRule.description = QS("摘要");
+    abstractRule.regexPatterns = {QS("摘要[：:]\\s*(.+?)(?=关键词|结论|$)"),
+                                  QS("实验摘要[：:]\\s*(.+?)(?=关键词|结论|$)")};
+    abstractRule.keywords = {QS("摘要"), QS("实验摘要"), QS("内容摘要")};
     abstractRule.enabled = false;
-    abstractRule.defaultValue = "";
-    abstractRule.tags = {"summary", "overview"};
+    abstractRule.defaultValue = QS("");
+    abstractRule.tags = {QS("summary"), QS("overview")};
     abstractRule.strategy = ExtractionStrategy::REGEX_PATTERN;
-    m_extractionRules["Abstract"] = abstractRule;
-    
+    m_extractionRules[QS("Abstract")] = abstractRule;
+
     // Keywords规则
     ExtractionRule keywordsRule;
-    keywordsRule.fieldName = "Keywords";
-    keywordsRule.displayName = "关键词";
-    keywordsRule.description = "关键词";
-    keywordsRule.regexPatterns = {"关键词[：:]\\s*(.+?)(?:\\n|$)", "关键词[：:]\\s*(.+?)(?:\\n|$)"};
-    keywordsRule.keywords = {"关键词", "关键词", "标签关键词"};
+    keywordsRule.fieldName = QS("Keywords");
+    keywordsRule.displayName = QS("关键词");
+    keywordsRule.description = QS("关键词");
+    keywordsRule.regexPatterns = {QS("关键词[：:]\\s*(.+?)(?:\\n|$)"),
+                                  QS("关键词[：:]\\s*(.+?)(?:\\n|$)")};
+    keywordsRule.keywords = {QS("关键词"), QS("关键词"), QS("标签关键词")};
     keywordsRule.enabled = false;
-    keywordsRule.defaultValue = "";
-    keywordsRule.tags = {"keywords", "tags"};
+    keywordsRule.defaultValue = QS("");
+    keywordsRule.tags = {QS("keywords"), QS("tags")};
     keywordsRule.strategy = ExtractionStrategy::REGEX_PATTERN;
-    m_extractionRules["Keywords"] = keywordsRule;
-    
+    m_extractionRules[QS("Keywords")] = keywordsRule;
+
     // ExperimentObjective规则
     ExtractionRule objectiveRule;
-    objectiveRule.fieldName = "ExperimentObjective";
-    objectiveRule.displayName = "实验目的";
-    objectiveRule.description = "实验目的";
-    objectiveRule.regexPatterns = {"实验目的[：:]\\s*(.+?)(?=实验原理|实验步骤|$)", "目的[：:]\\s*(.+?)(?=原理|步骤|$)"};
-    objectiveRule.keywords = {"实验目的", "目的", "实验目标"};
+    objectiveRule.fieldName = QS("ExperimentObjective");
+    objectiveRule.displayName = QS("实验目的");
+    objectiveRule.description = QS("实验目的");
+    objectiveRule.regexPatterns = {QS("实验目的[：:]\\s*(.+?)(?=实验原理|实验步骤|$)"),
+                                   QS("目的[：:]\\s*(.+?)(?=原理|步骤|$)")};
+    objectiveRule.keywords = {QS("实验目的"), QS("目的"), QS("实验目标")};
     objectiveRule.enabled = false;
-    objectiveRule.defaultValue = "";
-    objectiveRule.tags = {"objective", "purpose"};
+    objectiveRule.defaultValue = QS("");
+    objectiveRule.tags = {QS("objective"), QS("purpose")};
     objectiveRule.strategy = ExtractionStrategy::REGEX_PATTERN;
-    m_extractionRules["ExperimentObjective"] = objectiveRule;
-    
+    m_extractionRules[QS("ExperimentObjective")] = objectiveRule;
+
     // ExperimentPrinciple规则
     ExtractionRule principleRule;
-    principleRule.fieldName = "ExperimentPrinciple";
-    principleRule.displayName = "实验原理";
-    principleRule.description = "实验原理";
-    principleRule.regexPatterns = {"实验原理[：:]\\s*(.+?)(?=实验步骤|实验分析|$)", "原理[：:]\\s*(.+?)(?=步骤|分析|$)"};
-    principleRule.keywords = {"实验原理", "原理", "理论基础"};
+    principleRule.fieldName = QS("ExperimentPrinciple");
+    principleRule.displayName = QS("实验原理");
+    principleRule.description = QS("实验原理");
+    principleRule.regexPatterns = {QS("实验原理[：:]\\s*(.+?)(?=实验步骤|实验分析|$)"),
+                                   QS("原理[：:]\\s*(.+?)(?=步骤|分析|$)")};
+    principleRule.keywords = {QS("实验原理"), QS("原理"), QS("理论基础")};
     principleRule.enabled = false;
-    principleRule.defaultValue = "";
-    principleRule.tags = {"principle", "theory"};
+    principleRule.defaultValue = QS("");
+    principleRule.tags = {QS("principle"), QS("theory")};
     principleRule.strategy = ExtractionStrategy::REGEX_PATTERN;
-    m_extractionRules["ExperimentPrinciple"] = principleRule;
-    
+    m_extractionRules[QS("ExperimentPrinciple")] = principleRule;
+
     // ExperimentSteps规则
     ExtractionRule stepsRule;
-    stepsRule.fieldName = "ExperimentSteps";
-    stepsRule.displayName = "实验步骤";
-    stepsRule.description = "实验步骤";
-    stepsRule.regexPatterns = {"实验步骤[：:]\\s*(.+?)(?=实验结果|实验分析|$)", "步骤[：:]\\s*(.+?)(?=结果|分析|$)"};
-    stepsRule.keywords = {"实验步骤", "步骤", "实验过程"};
+    stepsRule.fieldName = QS("ExperimentSteps");
+    stepsRule.displayName = QS("实验步骤");
+    stepsRule.description = QS("实验步骤");
+    stepsRule.regexPatterns = {QS("实验步骤[：:]\\s*(.+?)(?=实验结果|实验分析|$)"),
+                               QS("步骤[：:]\\s*(.+?)(?=结果|分析|$)")};
+    stepsRule.keywords = {QS("实验步骤"), QS("步骤"), QS("实验过程")};
     stepsRule.enabled = false;
-    stepsRule.defaultValue = "";
-    stepsRule.tags = {"steps", "procedure"};
+    stepsRule.defaultValue = QS("");
+    stepsRule.tags = {QS("steps"), QS("procedure")};
     stepsRule.strategy = ExtractionStrategy::REGEX_PATTERN;
-    m_extractionRules["ExperimentSteps"] = stepsRule;
-    
+    m_extractionRules[QS("ExperimentSteps")] = stepsRule;
+
     // ExperimentResults规则
     ExtractionRule resultsRule;
-    resultsRule.fieldName = "ExperimentResults";
-    resultsRule.displayName = "实验结果";
-    resultsRule.description = "实验结果";
-    resultsRule.regexPatterns = {"实验结果[：:]\\s*(.+?)(?=实验分析|结论|$)", "结果[：:]\\s*(.+?)(?=分析|结论|$)"};
-    resultsRule.keywords = {"实验结果", "结果", "实验数据"};
+    resultsRule.fieldName = QS("ExperimentResults");
+    resultsRule.displayName = QS("实验结果");
+    resultsRule.description = QS("实验结果");
+    resultsRule.regexPatterns = {QS("实验结果[：:]\\s*(.+?)(?=实验分析|结论|$)"),
+                                 QS("结果[：:]\\s*(.+?)(?=分析|结论|$)")};
+    resultsRule.keywords = {QS("实验结果"), QS("结果"), QS("实验数据")};
     resultsRule.enabled = false;
-    resultsRule.defaultValue = "";
-    resultsRule.tags = {"results", "data"};
+    resultsRule.defaultValue = QS("");
+    resultsRule.tags = {QS("results"), QS("data")};
     resultsRule.strategy = ExtractionStrategy::REGEX_PATTERN;
-    m_extractionRules["ExperimentResults"] = resultsRule;
-    
+    m_extractionRules[QS("ExperimentResults")] = resultsRule;
+
     // ExperimentAnalysis规则
     ExtractionRule analysisRule;
-    analysisRule.fieldName = "ExperimentAnalysis";
-    analysisRule.displayName = "实验分析";
-    analysisRule.description = "实验分析";
-    analysisRule.regexPatterns = {"实验分析[：:]\\s*(.+?)(?=结论|$)", "分析[：:]\\s*(.+?)(?=结论|$)"};
-    analysisRule.keywords = {"实验分析", "分析", "结果分析"};
+    analysisRule.fieldName = QS("ExperimentAnalysis");
+    analysisRule.displayName = QS("实验分析");
+    analysisRule.description = QS("实验分析");
+    analysisRule.regexPatterns = {QS("实验分析[：:]\\s*(.+?)(?=结论|$)"),
+                                  QS("分析[：:]\\s*(.+?)(?=结论|$)")};
+    analysisRule.keywords = {QS("实验分析"), QS("分析"), QS("结果分析")};
     analysisRule.enabled = false;
-    analysisRule.defaultValue = "";
-    analysisRule.tags = {"analysis", "discussion"};
+    analysisRule.defaultValue = QS("");
+    analysisRule.tags = {QS("analysis"), QS("discussion")};
     analysisRule.strategy = ExtractionStrategy::REGEX_PATTERN;
-    m_extractionRules["ExperimentAnalysis"] = analysisRule;
-    
+    m_extractionRules[QS("ExperimentAnalysis")] = analysisRule;
+
     // Conclusion规则
     ExtractionRule conclusionRule;
-    conclusionRule.fieldName = "Conclusion";
-    conclusionRule.displayName = "结论";
-    conclusionRule.description = "结论";
-    conclusionRule.regexPatterns = {"结论[：:]\\s*(.+?)$", "总结[：:]\\s*(.+?)$"};
-    conclusionRule.keywords = {"结论", "总结", "实验结论"};
+    conclusionRule.fieldName = QS("Conclusion");
+    conclusionRule.displayName = QS("结论");
+    conclusionRule.description = QS("结论");
+    conclusionRule.regexPatterns = {QS("结论[：:]\\s*(.+?)$"), QS("总结[：:]\\s*(.+?)$")};
+    conclusionRule.keywords = {QS("结论"), QS("总结"), QS("实验结论")};
     conclusionRule.enabled = false;
-    conclusionRule.defaultValue = "";
-    conclusionRule.tags = {"conclusion", "summary"};
+    conclusionRule.defaultValue = QS("");
+    conclusionRule.tags = {QS("conclusion"), QS("summary")};
     conclusionRule.strategy = ExtractionStrategy::REGEX_PATTERN;
-    m_extractionRules["Conclusion"] = conclusionRule;
+    m_extractionRules[QS("Conclusion")] = conclusionRule;
 }
 
 QMap<QString, FieldExtractor::ExtractionRule> FieldExtractor::getPredefinedRules() const
@@ -390,46 +384,46 @@ void FieldExtractor::loadConfiguration()
 {
     QString configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QDir().mkpath(configPath);
-    
-    QFile configFile(configPath + "/field_extractor_config.json");
+
+    QFile configFile(configPath + QS("/field_extractor_config.json"));
     if (configFile.open(QIODevice::ReadOnly)) {
         QJsonDocument doc = QJsonDocument::fromJson(configFile.readAll());
         QJsonObject config = doc.object();
-        
+
         // 加载配置
-        m_caseSensitive = config["caseSensitive"].toBool(false);
-        m_multilineMode = config["multilineMode"].toBool(false);
-        m_strategy = static_cast<ExtractionStrategy>(config["strategy"].toInt(0));
-        
+        m_caseSensitive = config[QS("caseSensitive")].toBool(false);
+        m_multilineMode = config[QS("multilineMode")].toBool(false);
+        m_strategy = static_cast<ExtractionStrategy>(config[QS("strategy")].toInt(0));
+
         // 加载自定义规则
-        QJsonArray rulesArray = config["customRules"].toArray();
-        for (const QJsonValue &value : rulesArray) {
+        QJsonArray rulesArray = config[QS("customRules")].toArray();
+        for (const QJsonValue& value : rulesArray) {
             QJsonObject ruleObj = value.toObject();
-            QString fieldName = ruleObj["fieldName"].toString();
+            QString fieldName = ruleObj[QS("fieldName")].toString();
             if (!fieldName.isEmpty()) {
                 ExtractionRule rule;
-                rule.fieldName = ruleObj["fieldName"].toString();
-                rule.displayName = ruleObj["displayName"].toString();
-                rule.enabled = ruleObj["enabled"].toBool(true);
-                rule.description = ruleObj["description"].toString();
-                
-                QJsonArray patternsArray = ruleObj["regexPatterns"].toArray();
-                for (const QJsonValue &patternValue : patternsArray) {
+                rule.fieldName = ruleObj[QS("fieldName")].toString();
+                rule.displayName = ruleObj[QS("displayName")].toString();
+                rule.enabled = ruleObj[QS("enabled")].toBool(true);
+                rule.description = ruleObj[QS("description")].toString();
+
+                QJsonArray patternsArray = ruleObj[QS("regexPatterns")].toArray();
+                for (const QJsonValue& patternValue : patternsArray) {
                     rule.regexPatterns.append(patternValue.toString());
                 }
-                
-                QJsonArray keywordsArray = ruleObj["keywords"].toArray();
-                for (const QJsonValue &keywordValue : keywordsArray) {
+
+                QJsonArray keywordsArray = ruleObj[QS("keywords")].toArray();
+                for (const QJsonValue& keywordValue : keywordsArray) {
                     rule.keywords.append(keywordValue.toString());
                 }
-                
-                QJsonArray tagsArray = ruleObj["tags"].toArray();
-                for (const QJsonValue &tagValue : tagsArray) {
+
+                QJsonArray tagsArray = ruleObj[QS("tags")].toArray();
+                for (const QJsonValue& tagValue : tagsArray) {
                     rule.tags.append(tagValue.toString());
                 }
-                
-                rule.strategy = static_cast<ExtractionStrategy>(ruleObj["strategy"].toInt(0));
-                
+
+                rule.strategy = static_cast<ExtractionStrategy>(ruleObj[QS("strategy")].toInt(0));
+
                 m_extractionRules[fieldName] = rule;
             }
         }
@@ -440,46 +434,46 @@ void FieldExtractor::saveConfiguration()
 {
     QString configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QDir().mkpath(configPath);
-    
-    QFile configFile(configPath + "/field_extractor_config.json");
+
+    QFile configFile(configPath + QS("/field_extractor_config.json"));
     if (configFile.open(QIODevice::WriteOnly)) {
         QJsonObject config;
-        config["caseSensitive"] = m_caseSensitive;
-        config["multilineMode"] = m_multilineMode;
-        config["strategy"] = static_cast<int>(m_strategy);
-        
+        config[QS("caseSensitive")] = m_caseSensitive;
+        config[QS("multilineMode")] = m_multilineMode;
+        config[QS("strategy")] = static_cast<int>(m_strategy);
+
         QJsonArray rulesArray;
         for (auto it = m_extractionRules.begin(); it != m_extractionRules.end(); ++it) {
             QJsonObject ruleObj;
-            ruleObj["fieldName"] = it.key();
-            ruleObj["displayName"] = it.value().displayName;
-            ruleObj["enabled"] = it.value().enabled;
-            ruleObj["description"] = it.value().description;
-            
+            ruleObj[QS("fieldName")] = it.key();
+            ruleObj[QS("displayName")] = it.value().displayName;
+            ruleObj[QS("enabled")] = it.value().enabled;
+            ruleObj[QS("description")] = it.value().description;
+
             QJsonArray patternsArray;
-            for (const QString &pattern : it.value().regexPatterns) {
+            for (const QString& pattern : it.value().regexPatterns) {
                 patternsArray.append(pattern);
             }
-            ruleObj["regexPatterns"] = patternsArray;
-            
+            ruleObj[QS("regexPatterns")] = patternsArray;
+
             QJsonArray keywordsArray;
-            for (const QString &keyword : it.value().keywords) {
+            for (const QString& keyword : it.value().keywords) {
                 keywordsArray.append(keyword);
             }
-            ruleObj["keywords"] = keywordsArray;
-            
+            ruleObj[QS("keywords")] = keywordsArray;
+
             QJsonArray tagsArray;
-            for (const QString &tag : it.value().tags) {
+            for (const QString& tag : it.value().tags) {
                 tagsArray.append(tag);
             }
-            ruleObj["tags"] = tagsArray;
-            
-            ruleObj["strategy"] = static_cast<int>(it.value().strategy);
-            
+            ruleObj[QS("tags")] = tagsArray;
+
+            ruleObj[QS("strategy")] = static_cast<int>(it.value().strategy);
+
             rulesArray.append(ruleObj);
         }
-        config["customRules"] = rulesArray;
-        
+        config[QS("customRules")] = rulesArray;
+
         QJsonDocument doc(config);
         configFile.write(doc.toJson());
     }

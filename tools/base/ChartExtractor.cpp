@@ -8,6 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
+#include "QtCompat.h"
 #include "ChartExtractor.h"
 #include <QFile>
 #include <QTextStream>
@@ -19,7 +20,7 @@
 ChartExtractor::ChartExtractor(QObject* parent) : ContentExtractor(parent)
 {
     // 初始化支持的图表类型
-    m_supportedTypes << "bar" << "line" << "pie" << "scatter" << "area" << "histogram";
+    m_supportedTypes << QS("bar") << QS("line") << QS("pie") << QS("scatter") << QS("area") << QS("histogram");
 }
 
 ChartExtractor::~ChartExtractor() {}
@@ -30,7 +31,7 @@ bool ChartExtractor::exportToJson(const ChartInfo& chart, const QString& outputP
 
     QFile file(outputPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        setLastError(QString("无法创建JSON文件: %1").arg(outputPath));
+        setLastError(QString(QS("无法创建JSON文件: %1")).arg(outputPath));
         return false;
     }
 
@@ -45,7 +46,7 @@ bool ChartExtractor::exportToCsv(const ChartInfo& chart, const QString& outputPa
 {
     QFile file(outputPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        setLastError(QString("无法创建CSV文件: %1").arg(outputPath));
+        setLastError(QString(QS("无法创建CSV文件: %1")).arg(outputPath));
         return false;
     }
 
@@ -53,12 +54,12 @@ bool ChartExtractor::exportToCsv(const ChartInfo& chart, const QString& outputPa
     stream.setEncoding(QStringConverter::Utf8);
 
     // 写入标题
-    stream << "Series,Label,Value\n";
+    stream << QS("Series,Label,Value\n");
 
     // 写入数据
     for (const DataSeries& series : chart.series) {
         for (int i = 0; i < series.labels.size() && i < series.values.size(); ++i) {
-            stream << series.name << "," << series.labels[i] << "," << series.values[i] << "\n";
+            stream << series.name << QS(",") << series.labels[i] << QS(",") << series.values[i] << QS("\n");
         }
     }
 
@@ -69,37 +70,37 @@ bool ChartExtractor::exportToCsv(const ChartInfo& chart, const QString& outputPa
 QJsonObject ChartExtractor::chartToJson(const ChartInfo& chart) const
 {
     QJsonObject json;
-    json["id"] = chart.id;
-    json["type"] = chartTypeToString(chart.type);
-    json["title"] = chart.title;
-    json["xAxisTitle"] = chart.xAxisTitle;
-    json["yAxisTitle"] = chart.yAxisTitle;
-    json["width"] = chart.size.width();
-    json["height"] = chart.size.height();
-    json["properties"] = chart.properties;
+    json[QS("id")] = chart.id;
+    json[QS("type")] = chartTypeToString(chart.type);
+    json[QS("title")] = chart.title;
+    json[QS("xAxisTitle")] = chart.xAxisTitle;
+    json[QS("yAxisTitle")] = chart.yAxisTitle;
+    json[QS("width")] = chart.size.width();
+    json[QS("height")] = chart.size.height();
+    json[QS("properties")] = chart.properties;
 
     QJsonArray seriesArray;
     for (const DataSeries& series : chart.series) {
         QJsonObject seriesObj;
-        seriesObj["name"] = series.name;
-        seriesObj["color"] = series.color;
-        seriesObj["properties"] = series.properties;
+        seriesObj[QS("name")] = series.name;
+        seriesObj[QS("color")] = series.color;
+        seriesObj[QS("properties")] = series.properties;
 
         QJsonArray labelsArray;
         for (const QString& label : series.labels) {
             labelsArray.append(label);
         }
-        seriesObj["labels"] = labelsArray;
+        seriesObj[QS("labels")] = labelsArray;
 
         QJsonArray valuesArray;
         for (double value : series.values) {
             valuesArray.append(value);
         }
-        seriesObj["values"] = valuesArray;
+        seriesObj[QS("values")] = valuesArray;
 
         seriesArray.append(seriesObj);
     }
-    json["series"] = seriesArray;
+    json[QS("series")] = seriesArray;
 
     return json;
 }
@@ -107,27 +108,27 @@ QJsonObject ChartExtractor::chartToJson(const ChartInfo& chart) const
 ChartInfo ChartExtractor::chartFromJson(const QJsonObject& json) const
 {
     ChartInfo chart;
-    chart.id = json["id"].toString();
-    chart.type = stringToChartType(json["type"].toString());
-    chart.title = json["title"].toString();
-    chart.xAxisTitle = json["xAxisTitle"].toString();
-    chart.yAxisTitle = json["yAxisTitle"].toString();
-    chart.size = QSize(json["width"].toInt(), json["height"].toInt());
-    chart.properties = json["properties"].toObject();
+    chart.id = json[QS("id")].toString();
+    chart.type = stringToChartType(json[QS("type")].toString());
+    chart.title = json[QS("title")].toString();
+    chart.xAxisTitle = json[QS("xAxisTitle")].toString();
+    chart.yAxisTitle = json[QS("yAxisTitle")].toString();
+    chart.size = QSize(json[QS("width")].toInt(), json[QS("height")].toInt());
+    chart.properties = json[QS("properties")].toObject();
 
-    QJsonArray seriesArray = json["series"].toArray();
+    QJsonArray seriesArray = json[QS("series")].toArray();
     for (const QJsonValue& value : seriesArray) {
         QJsonObject seriesObj = value.toObject();
-        DataSeries series(seriesObj["name"].toString());
-        series.color = seriesObj["color"].toString();
-        series.properties = seriesObj["properties"].toObject();
+        DataSeries series(seriesObj[QS("name")].toString());
+        series.color = seriesObj[QS("color")].toString();
+        series.properties = seriesObj[QS("properties")].toObject();
 
-        QJsonArray labelsArray = seriesObj["labels"].toArray();
+        QJsonArray labelsArray = seriesObj[QS("labels")].toArray();
         for (const QJsonValue& labelValue : labelsArray) {
             series.labels.append(labelValue.toString());
         }
 
-        QJsonArray valuesArray = seriesObj["values"].toArray();
+        QJsonArray valuesArray = seriesObj[QS("values")].toArray();
         for (const QJsonValue& valueValue : valuesArray) {
             series.values.append(valueValue.toDouble());
         }
@@ -141,13 +142,13 @@ ChartInfo ChartExtractor::chartFromJson(const QJsonObject& json) const
 bool ChartExtractor::saveChartImage(const ChartInfo& chart, const QString& outputPath)
 {
     if (chart.imageData.isEmpty()) {
-        setLastError("图表图片数据为空");
+        setLastError(QS("图表图片数据为空"));
         return false;
     }
 
     QFile file(outputPath);
     if (!file.open(QIODevice::WriteOnly)) {
-        setLastError(QString("无法创建图片文件: %1").arg(outputPath));
+        setLastError(QString(QS("无法创建图片文件: %1")).arg(outputPath));
         return false;
     }
 
@@ -155,7 +156,7 @@ bool ChartExtractor::saveChartImage(const ChartInfo& chart, const QString& outpu
     file.close();
 
     if (bytesWritten != chart.imageData.size()) {
-        setLastError(QString("图片文件写入不完整: %1").arg(outputPath));
+        setLastError(QString(QS("图片文件写入不完整: %1")).arg(outputPath));
         return false;
     }
 
@@ -168,36 +169,36 @@ QString ChartExtractor::chartTypeToString(ChartType type) const
 {
     switch (type) {
     case ChartType::BAR:
-        return "bar";
+        return QS("bar");
     case ChartType::LINE:
-        return "line";
+        return QS("line");
     case ChartType::PIE:
-        return "pie";
+        return QS("pie");
     case ChartType::SCATTER:
-        return "scatter";
+        return QS("scatter");
     case ChartType::AREA:
-        return "area";
+        return QS("area");
     case ChartType::HISTOGRAM:
-        return "histogram";
+        return QS("histogram");
     default:
-        return "unknown";
+        return QS("unknown");
     }
 }
 
 ChartType ChartExtractor::stringToChartType(const QString& typeString) const
 {
     QString type = typeString.toLower();
-    if (type == "bar")
+    if (type == QS("bar"))
         return ChartType::BAR;
-    if (type == "line")
+    if (type == QS("line"))
         return ChartType::LINE;
-    if (type == "pie")
+    if (type == QS("pie"))
         return ChartType::PIE;
-    if (type == "scatter")
+    if (type == QS("scatter"))
         return ChartType::SCATTER;
-    if (type == "area")
+    if (type == QS("area"))
         return ChartType::AREA;
-    if (type == "histogram")
+    if (type == QS("histogram"))
         return ChartType::HISTOGRAM;
     return ChartType::UNKNOWN;
 }
@@ -206,34 +207,34 @@ bool ChartExtractor::processChartData(const QJsonObject& rawData, ChartInfo& cha
 {
     // 基本实现，子类可以重写
     chartInfo.id = generateChartId();
-    chartInfo.type = detectChartType(rawData["properties"].toObject());
-    chartInfo.title = rawData["title"].toString();
-    chartInfo.xAxisTitle = rawData["xAxisTitle"].toString();
-    chartInfo.yAxisTitle = rawData["yAxisTitle"].toString();
-    chartInfo.properties = rawData["properties"].toObject();
+    chartInfo.type = detectChartType(rawData[QS("properties")].toObject());
+    chartInfo.title = rawData[QS("title")].toString();
+    chartInfo.xAxisTitle = rawData[QS("xAxisTitle")].toString();
+    chartInfo.yAxisTitle = rawData[QS("yAxisTitle")].toString();
+    chartInfo.properties = rawData[QS("properties")].toObject();
 
     return true;
 }
 
-QString ChartExtractor::generateChartId() { return generateUniqueId("chart"); }
+QString ChartExtractor::generateChartId() { return generateUniqueId(QS("chart")); }
 
 QString ChartExtractor::validateChart(const ChartInfo& chart) const
 {
     if (chart.id.isEmpty()) {
-        return "图表ID为空";
+        return QS("图表ID为空");
     }
 
     if (chart.type == ChartType::UNKNOWN) {
-        return "图表类型未知";
+        return QS("图表类型未知");
     }
 
     if (chart.series.isEmpty()) {
-        return "图表没有数据系列";
+        return QS("图表没有数据系列");
     }
 
     for (const DataSeries& series : chart.series) {
         if (series.labels.size() != series.values.size()) {
-            return QString("数据系列 '%1' 的标签和数值数量不匹配").arg(series.name);
+            return QString(QS("数据系列 '%1' 的标签和数值数量不匹配")).arg(series.name);
         }
     }
 
@@ -242,7 +243,7 @@ QString ChartExtractor::validateChart(const ChartInfo& chart) const
 
 ChartType ChartExtractor::detectChartType(const QJsonObject& properties) const
 {
-    QString chartType = properties["chartType"].toString().toLower();
+    QString chartType = properties[QS("chartType")].toString().toLower();
     return stringToChartType(chartType);
 }
 
@@ -250,7 +251,7 @@ bool ChartExtractor::exportToXml(const ChartInfo& chart, const QString& outputPa
 {
     QFile file(outputPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        setLastError(QString("无法创建XML文件: %1").arg(outputPath));
+        setLastError(QString(QS("无法创建XML文件: %1")).arg(outputPath));
         return false;
     }
 
@@ -259,35 +260,35 @@ bool ChartExtractor::exportToXml(const ChartInfo& chart, const QString& outputPa
     writer.setAutoFormattingIndent(2);
 
     // 写入XML声明
-    writer.writeStartDocument("1.0", true);
+    writer.writeStartDocument(QS("1.0"), true);
 
     // 写入根元素
-    writer.writeStartElement("Chart");
-    writer.writeAttribute("id", chart.id);
-    writer.writeAttribute("type", QString::number(static_cast<int>(chart.type)));
-    writer.writeAttribute("title", chart.title);
+    writer.writeStartElement(QS("Chart"));
+    writer.writeAttribute(QS("id"), chart.id);
+    writer.writeAttribute(QS("type"), QString::number(static_cast<int>(chart.type)));
+    writer.writeAttribute(QS("title"), chart.title);
 
     // 写入数据系列
-    writer.writeStartElement("DataSeries");
-    writer.writeAttribute("count", QString::number(chart.series.size()));
+    writer.writeStartElement(QS("DataSeries"));
+    writer.writeAttribute(QS("count"), QString::number(chart.series.size()));
     
     for (const DataSeries& series : chart.series) {
-        writer.writeStartElement("Series");
-        writer.writeAttribute("name", series.name);
+        writer.writeStartElement(QS("Series"));
+        writer.writeAttribute(QS("name"), series.name);
         
         // 写入标签
-        writer.writeStartElement("Labels");
+        writer.writeStartElement(QS("Labels"));
         for (const QString& label : series.labels) {
-            writer.writeStartElement("Label");
+            writer.writeStartElement(QS("Label"));
             writer.writeCharacters(label);
             writer.writeEndElement(); // Label
         }
         writer.writeEndElement(); // Labels
         
         // 写入数值
-        writer.writeStartElement("Values");
+        writer.writeStartElement(QS("Values"));
         for (double value : series.values) {
-            writer.writeStartElement("Value");
+            writer.writeStartElement(QS("Value"));
             writer.writeCharacters(QString::number(value));
             writer.writeEndElement(); // Value
         }
@@ -299,18 +300,18 @@ bool ChartExtractor::exportToXml(const ChartInfo& chart, const QString& outputPa
 
     // 写入图片数据（如果有）
     if (!chart.imageData.isEmpty()) {
-        writer.writeStartElement("ImageData");
-        writer.writeAttribute("encoding", "base64");
+        writer.writeStartElement(QS("ImageData"));
+        writer.writeAttribute(QS("encoding"), QS("base64"));
         writer.writeCharacters(encodeToBase64(chart.imageData));
         writer.writeEndElement(); // ImageData
     }
 
     // 写入属性
     if (!chart.properties.isEmpty()) {
-        writer.writeStartElement("Properties");
+        writer.writeStartElement(QS("Properties"));
         for (auto it = chart.properties.begin(); it != chart.properties.end(); ++it) {
-            writer.writeStartElement("Property");
-            writer.writeAttribute("name", it.key());
+            writer.writeStartElement(QS("Property"));
+            writer.writeAttribute(QS("name"), it.key());
             writer.writeCharacters(it.value().toString());
             writer.writeEndElement(); // Property
         }
@@ -328,7 +329,7 @@ bool ChartExtractor::exportToXml(const QList<ChartInfo>& charts, const QString& 
 {
     QFile file(outputPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        setLastError(QString("无法创建XML文件: %1").arg(outputPath));
+        setLastError(QString(QS("无法创建XML文件: %1")).arg(outputPath));
         return false;
     }
 
@@ -337,40 +338,40 @@ bool ChartExtractor::exportToXml(const QList<ChartInfo>& charts, const QString& 
     writer.setAutoFormattingIndent(2);
 
     // 写入XML声明
-    writer.writeStartDocument("1.0", true);
+    writer.writeStartDocument(QS("1.0"), true);
 
     // 写入根元素
-    writer.writeStartElement("Charts");
-    writer.writeAttribute("count", QString::number(charts.size()));
+    writer.writeStartElement(QS("Charts"));
+    writer.writeAttribute(QS("count"), QString::number(charts.size()));
 
     // 写入每个图表
     for (const ChartInfo& chart : charts) {
-        writer.writeStartElement("Chart");
-        writer.writeAttribute("id", chart.id);
-        writer.writeAttribute("type", QString::number(static_cast<int>(chart.type)));
-        writer.writeAttribute("title", chart.title);
+        writer.writeStartElement(QS("Chart"));
+        writer.writeAttribute(QS("id"), chart.id);
+        writer.writeAttribute(QS("type"), QString::number(static_cast<int>(chart.type)));
+        writer.writeAttribute(QS("title"), chart.title);
 
         // 写入数据系列
-        writer.writeStartElement("DataSeries");
-        writer.writeAttribute("count", QString::number(chart.series.size()));
+        writer.writeStartElement(QS("DataSeries"));
+        writer.writeAttribute(QS("count"), QString::number(chart.series.size()));
         
         for (const DataSeries& series : chart.series) {
-            writer.writeStartElement("Series");
-            writer.writeAttribute("name", series.name);
+            writer.writeStartElement(QS("Series"));
+            writer.writeAttribute(QS("name"), series.name);
             
             // 写入标签
-            writer.writeStartElement("Labels");
+            writer.writeStartElement(QS("Labels"));
             for (const QString& label : series.labels) {
-                writer.writeStartElement("Label");
+                writer.writeStartElement(QS("Label"));
                 writer.writeCharacters(label);
                 writer.writeEndElement(); // Label
             }
             writer.writeEndElement(); // Labels
             
             // 写入数值
-            writer.writeStartElement("Values");
+            writer.writeStartElement(QS("Values"));
             for (double value : series.values) {
-                writer.writeStartElement("Value");
+                writer.writeStartElement(QS("Value"));
                 writer.writeCharacters(QString::number(value));
                 writer.writeEndElement(); // Value
             }
@@ -382,18 +383,18 @@ bool ChartExtractor::exportToXml(const QList<ChartInfo>& charts, const QString& 
 
         // 写入图片数据（如果有）
         if (!chart.imageData.isEmpty()) {
-            writer.writeStartElement("ImageData");
-            writer.writeAttribute("encoding", "base64");
+            writer.writeStartElement(QS("ImageData"));
+            writer.writeAttribute(QS("encoding"), QS("base64"));
             writer.writeCharacters(encodeToBase64(chart.imageData));
             writer.writeEndElement(); // ImageData
         }
 
         // 写入属性
         if (!chart.properties.isEmpty()) {
-            writer.writeStartElement("Properties");
+            writer.writeStartElement(QS("Properties"));
             for (auto it = chart.properties.begin(); it != chart.properties.end(); ++it) {
-                writer.writeStartElement("Property");
-                writer.writeAttribute("name", it.key());
+                writer.writeStartElement(QS("Property"));
+                writer.writeAttribute(QS("name"), it.key());
                 writer.writeCharacters(it.value().toString());
                 writer.writeEndElement(); // Property
             }

@@ -22,6 +22,24 @@ QMAKE_CXXFLAGS += -std=c++17
 QMAKE_CXXFLAGS += -DQT_NO_DEBUG_OUTPUT
 QMAKE_CXXFLAGS += -DQT_DISABLE_DEBUG_OUTPUT
 
+# Poppler Qt6 兼容性修复
+QMAKE_CXXFLAGS += -DQT_STRINGVIEW_LEVEL=1
+QMAKE_CXXFLAGS += -DQT_USE_QSTRINGBUILDER
+
+# Qt版本兼容性修复 - 解决Qt 6.8.2与Poppler Qt6的ABI不兼容问题
+QMAKE_CXXFLAGS += -DQT_CORE_LIB
+QMAKE_CXXFLAGS += -DQT_NO_CAST_FROM_ASCII
+QMAKE_CXXFLAGS += -DQT_NO_CAST_TO_ASCII
+QMAKE_CXXFLAGS += -DQT_DISABLE_DEPRECATED_UP_TO=0x060800
+QMAKE_CXXFLAGS += -DQT_STRICT_ITERATORS
+
+# 强制使用兼容的Qt符号版本
+QMAKE_CXXFLAGS += -DQT_DISABLE_DEPRECATED_BEFORE=0x060000
+
+# 解决Qt 6.8.2字符串字面量问题
+QMAKE_CXXFLAGS += -DQT_USE_QSTRINGBUILDER
+QMAKE_CXXFLAGS += -DQT_STRINGVIEW_LEVEL=1
+
 # 添加zlib支持
 LIBS += -lz
 
@@ -34,13 +52,21 @@ INCLUDEPATH += tools/base
 INCLUDEPATH += tools/docx
 INCLUDEPATH += tools/pdf
 INCLUDEPATH += tools/utils
+INCLUDEPATH += src
 
-# Poppler库配置（MSYS2 MinGW版本）
-# 使用MSYS2安装的Poppler库
-INCLUDEPATH += C:/msys64/mingw64/include/poppler/qt6
-LIBS += -LC:/msys64/mingw64/lib
-LIBS += -lpoppler-qt6
-LIBS += -lpoppler
+# Poppler库配置（使用本地源码）
+# 使用Poppler 24.08.0源码直接编译
+# Poppler Qt6 配置
+INCLUDEPATH += libs/poppler-core
+INCLUDEPATH += libs/poppler-qt6
+INCLUDEPATH += poppler-24.08.0
+INCLUDEPATH += poppler-24.08.0/poppler
+INCLUDEPATH += poppler-24.08.0/qt6/src
+
+# 添加符号版本控制来解决ABI兼容性问题
+QMAKE_LFLAGS += -Wl,--allow-multiple-definition
+QMAKE_LFLAGS += -Wl,--no-undefined
+QMAKE_LFLAGS += -Wl,--as-needed
 
 # 添加额外的链接选项
 QMAKE_LFLAGS += -Wl,--allow-multiple-definition
@@ -67,6 +93,8 @@ SOURCES += \
     src/TemplateManager.cpp \
     src/FieldExtractor.cpp \
     src/KZipUtils.cpp \
+    src/PopplerCompat.cpp \
+    libs/poppler-qt6/poppler-qt6-simple.cpp \
     libs/karchive/src/karchive.cpp \
     libs/karchive/src/kzip.cpp \
     libs/karchive/src/kcompressiondevice.cpp \
@@ -105,6 +133,9 @@ HEADERS += \
     src/KZipUtils.h \
     src/FieldExtractor.h \
     libs/karchive/src/karchive.h \
+    libs/karchive/src/karchive_export.h \
+    libs/karchive/src/loggingcategory.h \
+    libs/karchive/src/config-compression.h \
     libs/karchive/src/karchivedirectory.h \
     libs/karchive/src/karchiveentry.h \
     libs/karchive/src/karchivefile.h \

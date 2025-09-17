@@ -1,3 +1,4 @@
+#include "QtCompat.h"
 #include "FileConverter.h"
 #include <QFileInfo>
 #include <QDir>
@@ -10,11 +11,11 @@
 FileConverter::FileConverter(QObject* parent) : QObject(parent)
 {
     // 设置默认模板配置
-    m_templateConfig = QJsonObject{{"version", "1.0"},
-                                   {"name", "Default Template"},
-                                   {"description", "Default template configuration"},
-                                   {"fields", QJsonObject{}},
-                                   {"rules", QJsonObject{}}};
+    m_templateConfig = QJsonObject{{QS("version"), QS("1.0")},
+                                   {QS("name"), QS("Default Template")},
+                                   {QS("description"), QS("Default template configuration")},
+                                   {QS("fields"), QJsonObject{}},
+                                   {QS("rules"), QJsonObject{}}};
 }
 
 FileConverter::~FileConverter() {}
@@ -24,13 +25,13 @@ FileConverter::ConvertStatus FileConverter::convertFileToXml(const QString& inpu
 {
     // 验证输入文件
     if (!validateFilePath(inputPath)) {
-        setLastError("输入文件路径无效或文件不存在");
+        setLastError(QS("输入文件路径无效或文件不存在"));
         return ConvertStatus::FILE_NOT_FOUND;
     }
 
     // 检查是否支持该格式
     if (!isSupported(inputPath)) {
-        setLastError("不支持的文件格式");
+        setLastError(QS("不支持的文件格式"));
         return ConvertStatus::INVALID_FORMAT;
     }
 
@@ -44,7 +45,7 @@ FileConverter::ConvertStatus FileConverter::convertFileToXml(const QString& inpu
     // 验证字段
     QString validationError = validateFields(fields);
     if (!validationError.isEmpty()) {
-        setLastError("字段验证失败: " + validationError);
+        setLastError(QS("字段验证失败: ") + validationError);
         return ConvertStatus::PARSE_ERROR;
     }
 
@@ -58,7 +59,7 @@ FileConverter::ConvertStatus FileConverter::convertFileToXml(const QString& inpu
     // 写入输出文件
     QFile outputFile(outputPath);
     if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        setLastError("无法创建输出文件: " + outputPath);
+        setLastError(QS("无法创建输出文件: ") + outputPath);
         return ConvertStatus::WRITE_ERROR;
     }
 
@@ -77,19 +78,19 @@ QJsonObject FileConverter::getTemplateConfig() const { return m_templateConfig; 
 QString FileConverter::validateFields(const QMap<QString, FieldInfo>& fields) const
 {
     // 检查必填字段
-    QJsonObject fieldConfig = m_templateConfig["fields"].toObject();
+    QJsonObject fieldConfig = m_templateConfig[QS("fields")].toObject();
     for (auto it = fieldConfig.begin(); it != fieldConfig.end(); ++it) {
         QString fieldName = it.key();
         QJsonObject fieldInfo = it.value().toObject();
 
-        if (fieldInfo["required"].toBool() && !fields.contains(fieldName)) {
-            return QString("缺少必填字段: %1").arg(fieldName);
+        if (fieldInfo[QS("required")].toBool() && !fields.contains(fieldName)) {
+            return QS("缺少必填字段: %1").arg(fieldName);
         }
 
         if (fields.contains(fieldName)) {
             const FieldInfo& field = fields[fieldName];
             if (field.required && field.content.isEmpty()) {
-                return QString("必填字段 %1 内容为空").arg(fieldName);
+                return QS("必填字段 %1 内容为空").arg(fieldName);
             }
         }
     }
@@ -105,16 +106,21 @@ bool FileConverter::extractFieldsFromText(const QString& text,
 
     // 使用正则表达式提取常见字段
     QMap<QString, QRegularExpression> patterns;
-    patterns[QStringLiteral("Title")] = QRegularExpression(QStringLiteral("题目[：:]\\s*(.+?)(?:\\n|$)"));
-    patterns[QStringLiteral("StudentName")] = QRegularExpression(QStringLiteral("姓名[：:]\\s*(.+?)(?:\\n|$)"));
-    patterns[QStringLiteral("StudentID")] = QRegularExpression(QStringLiteral("学号[：:]\\s*(.+?)(?:\\n|$)"));
-    patterns[QStringLiteral("Class")] = QRegularExpression(QStringLiteral("班级[：:]\\s*(.+?)(?:\\n|$)"));
-    patterns[QStringLiteral("Abstract")] =
-        QRegularExpression(QStringLiteral("摘要[：:]\\s*(.+?)(?=关键词|结论|$)|\\s*(.+?)(?=关键词|结论|$)"),
-                           QRegularExpression::DotMatchesEverythingOption);
-    patterns[QStringLiteral("Keywords")] = QRegularExpression(QStringLiteral("关键词[：:]\\s*(.+?)(?:\\n|$)"));
-    patterns[QStringLiteral("Conclusion")] =
-        QRegularExpression(QStringLiteral("结论[：:]\\s*(.+?)$"), QRegularExpression::DotMatchesEverythingOption);
+    patterns[QStringLiteral("Title")] =
+        QRegularExpression(QStringLiteral("题目[：:]\\s*(.+?)(?:\\n|$)"));
+    patterns[QStringLiteral("StudentName")] =
+        QRegularExpression(QStringLiteral("姓名[：:]\\s*(.+?)(?:\\n|$)"));
+    patterns[QStringLiteral("StudentID")] =
+        QRegularExpression(QStringLiteral("学号[：:]\\s*(.+?)(?:\\n|$)"));
+    patterns[QStringLiteral("Class")] =
+        QRegularExpression(QStringLiteral("班级[：:]\\s*(.+?)(?:\\n|$)"));
+    patterns[QStringLiteral("Abstract")] = QRegularExpression(
+        QStringLiteral("摘要[：:]\\s*(.+?)(?=关键词|结论|$)|\\s*(.+?)(?=关键词|结论|$)"),
+        QRegularExpression::DotMatchesEverythingOption);
+    patterns[QStringLiteral("Keywords")] =
+        QRegularExpression(QStringLiteral("关键词[：:]\\s*(.+?)(?:\\n|$)"));
+    patterns[QStringLiteral("Conclusion")] = QRegularExpression(
+        QStringLiteral("结论[：:]\\s*(.+?)$"), QRegularExpression::DotMatchesEverythingOption);
 
     int matchedFields = 0;
     for (auto it = patterns.begin(); it != patterns.end(); ++it) {
@@ -133,9 +139,9 @@ bool FileConverter::extractFieldsFromText(const QString& text,
 
     // 如果没有匹配到任何字段，尝试按行分割文本
     if (fields.isEmpty()) {
-        QStringList lines = cleanedText.split('\n', Qt::SkipEmptyParts);
+        QStringList lines = cleanedText.split(QS("\n"), Qt::SkipEmptyParts);
         qDebug() << "FileConverter: 文本按行分割后得到" << lines.size() << "行";
-        
+
         for (int i = 0; i < lines.size() && i < 10; ++i) { // 限制最多10行
             QString line = lines[i].trimmed();
             if (!line.isEmpty() && line.length() > 2) {
@@ -158,15 +164,17 @@ void FileConverter::setLastError(const QString& error)
 
 QString FileConverter::generateXmlHeader() const
 {
-    return QStringLiteral("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                         "<ReportMasonTemplate version=\"1.0\" created=\"") +
+    return QStringLiteral(
+               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+               "<ReportMasonTemplate version=\"1.0\" created=\"") +
            QDateTime::currentDateTime().toString(Qt::ISODate) + QStringLiteral("\">\n");
 }
 
 QString FileConverter::generateXmlFieldNode(const FieldInfo& field) const
 {
-    QString xml = QString(QStringLiteral("    <field name=\"%1\" required=\"%2\">"))
-                      .arg(field.name, field.required ? QStringLiteral("true") : QStringLiteral("false"));
+    QString xml =
+        QString(QStringLiteral("    <field name=\"%1\" required=\"%2\">"))
+            .arg(field.name, field.required ? QStringLiteral("true") : QStringLiteral("false"));
 
     if (!field.description.isEmpty()) {
         xml += QString(QStringLiteral("<description>%1</description>")).arg(field.description);
@@ -175,14 +183,14 @@ QString FileConverter::generateXmlFieldNode(const FieldInfo& field) const
     xml += QString(QStringLiteral("<content><![CDATA[%1]]></content>")).arg(field.content);
 
     if (!field.keywords.isEmpty()) {
-        xml += "<keywords>";
+        xml += QS("<keywords>");
         for (const QString& keyword : field.keywords) {
-            xml += QString("<keyword>%1</keyword>").arg(keyword);
+            xml += QS("<keyword>%1</keyword>").arg(keyword);
         }
-        xml += "</keywords>";
+        xml += QS("</keywords>");
     }
 
-    xml += "</field>\n";
+    xml += QS("</field>\n");
     return xml;
 }
 
@@ -196,18 +204,18 @@ QString FileConverter::cleanText(const QString& text) const
 {
     // 统一换行符
     QString cleaned = text;
-    cleaned.replace("\r\n", "\n");
-    cleaned.replace("\r", "\n");
+    cleaned.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
+    cleaned.replace(QStringLiteral("\r"), QStringLiteral("\n"));
 
     // 移除多余空白
     cleaned = cleaned.simplified();
 
     // 统一标点符号（全角转半角）
-    cleaned.replace("：", ":");
-    cleaned.replace("，", ",");
-    cleaned.replace("。", ".");
-    cleaned.replace("！", "!");
-    cleaned.replace("？", "?");
+    cleaned.replace(QStringLiteral("："), QStringLiteral(":"));
+    cleaned.replace(QStringLiteral("，"), QStringLiteral(","));
+    cleaned.replace(QStringLiteral("。"), QStringLiteral("."));
+    cleaned.replace(QStringLiteral("！"), QStringLiteral("!"));
+    cleaned.replace(QStringLiteral("？"), QStringLiteral("?"));
 
     return cleaned;
 }
@@ -218,11 +226,11 @@ FileConverter::InputFormat getFileFormat(const QString& filePath)
     QFileInfo fileInfo(filePath);
     QString suffix = fileInfo.suffix().toLower();
 
-    if (suffix == "docx") {
+    if (suffix == QS("docx")) {
         return FileConverter::InputFormat::DOCX;
-    } else if (suffix == "pdf") {
+    } else if (suffix == QS("pdf")) {
         return FileConverter::InputFormat::PDF;
-    } else if (suffix == "pptx") {
+    } else if (suffix == QS("pptx")) {
         return FileConverter::InputFormat::PPTX;
     }
 
@@ -233,13 +241,13 @@ QString getMimeType(FileConverter::InputFormat format)
 {
     switch (format) {
     case FileConverter::InputFormat::DOCX:
-        return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        return QS("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
     case FileConverter::InputFormat::PDF:
-        return "application/pdf";
+        return QS("application/pdf");
     case FileConverter::InputFormat::PPTX:
-        return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+        return QS("application/vnd.openxmlformats-officedocument.presentationml.presentation");
     default:
-        return "application/octet-stream";
+        return QS("application/octet-stream");
     }
 }
 
@@ -247,11 +255,11 @@ QStringList getFileExtensions(FileConverter::InputFormat format)
 {
     switch (format) {
     case FileConverter::InputFormat::DOCX:
-        return {"docx"};
+        return {QS("docx")};
     case FileConverter::InputFormat::PDF:
-        return {"pdf"};
+        return {QS("pdf")};
     case FileConverter::InputFormat::PPTX:
-        return {"pptx"};
+        return {QS("pptx")};
     default:
         return {};
     }

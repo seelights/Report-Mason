@@ -8,6 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
+#include "QtCompat.h"
 #include "DocxContentTestWidget.h"
 #include <QStandardPaths>
 #include <QDateTime>
@@ -51,12 +52,12 @@ DocxContentTestWidget::DocxContentTestWidget(QWidget *parent)
     m_chartExtractor = new DocxChartExtractor(this);
     
     // 设置输出目录
-    m_outputDirectory = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/ReportMason/DocxTest";
+    m_outputDirectory = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QS("/ReportMason/DocxTest");
     m_imageExtractor->setOutputDirectory(m_outputDirectory);
     m_tableExtractor->setOutputDirectory(m_outputDirectory);
     m_chartExtractor->setOutputDirectory(m_outputDirectory);
     
-    logMessage("DOCX内容提取测试窗口已启动");
+    logMessage(QS("DOCX内容提取测试窗口已启动"));
 }
 
 DocxContentTestWidget::~DocxContentTestWidget()
@@ -69,9 +70,9 @@ void DocxContentTestWidget::setupUI()
     
     // 顶部按钮区域
     QHBoxLayout *buttonLayout = new QHBoxLayout();
-    m_openFileButton = new QPushButton("打开DOCX文件", this);
-    m_saveResultsButton = new QPushButton("保存结果", this);
-    m_clearButton = new QPushButton("清空日志", this);
+    m_openFileButton = new QPushButton(QS("打开DOCX文件"), this);
+    m_saveResultsButton = new QPushButton(QS("保存结果"), this);
+    m_clearButton = new QPushButton(QS("清空日志"), this);
     
     buttonLayout->addWidget(m_openFileButton);
     buttonLayout->addWidget(m_saveResultsButton);
@@ -89,7 +90,7 @@ void DocxContentTestWidget::setupUI()
     setupChartTab();
     
     // 日志区域
-    QGroupBox *logGroup = new QGroupBox("日志输出", this);
+    QGroupBox *logGroup = new QGroupBox(QS("日志输出"), this);
     QVBoxLayout *logLayout = new QVBoxLayout(logGroup);
     m_logTextEdit = new QTextEdit(this);
     m_logTextEdit->setMaximumHeight(150);
@@ -115,9 +116,9 @@ void DocxContentTestWidget::setupImageTab()
     
     // 按钮区域
     QHBoxLayout *buttonLayout = new QHBoxLayout();
-    m_testImageExtractionButton = new QPushButton("提取图片", m_imageTab);
-    m_testImageExportToXmlButton = new QPushButton("导出为XML", m_imageTab);
-    m_testImageExportToStandardButton = new QPushButton("导出为标准格式", m_imageTab);
+    m_testImageExtractionButton = new QPushButton(QS("提取图片"), m_imageTab);
+    m_testImageExportToXmlButton = new QPushButton(QS("导出为XML"), m_imageTab);
+    m_testImageExportToStandardButton = new QPushButton(QS("导出为标准格式"), m_imageTab);
     
     buttonLayout->addWidget(m_testImageExtractionButton);
     buttonLayout->addWidget(m_testImageExportToXmlButton);
@@ -128,17 +129,17 @@ void DocxContentTestWidget::setupImageTab()
     QSplitter *splitter = new QSplitter(Qt::Horizontal, m_imageTab);
     
     // 图片列表
-    QGroupBox *listGroup = new QGroupBox("图片列表", m_imageTab);
+    QGroupBox *listGroup = new QGroupBox(QS("图片列表"), m_imageTab);
     QVBoxLayout *listLayout = new QVBoxLayout(listGroup);
     m_imageListWidget = new QListWidget(m_imageTab);
     listLayout->addWidget(m_imageListWidget);
     
     // 图片详情表格
-    QGroupBox *tableGroup = new QGroupBox("图片详情", m_imageTab);
+    QGroupBox *tableGroup = new QGroupBox(QS("图片详情"), m_imageTab);
     QVBoxLayout *tableLayout = new QVBoxLayout(tableGroup);
     m_imageTableWidget = new QTableWidget(m_imageTab);
     m_imageTableWidget->setColumnCount(4);
-    m_imageTableWidget->setHorizontalHeaderLabels({"ID", "格式", "尺寸", "路径"});
+    m_imageTableWidget->setHorizontalHeaderLabels({QS("ID"), QS("格式"), QS("尺寸"), QS("路径")});
     m_imageTableWidget->horizontalHeader()->setStretchLastSection(true);
     tableLayout->addWidget(m_imageTableWidget);
     
@@ -149,7 +150,7 @@ void DocxContentTestWidget::setupImageTab()
     layout->addLayout(buttonLayout);
     layout->addWidget(splitter);
     
-    m_tabWidget->addTab(m_imageTab, "图片提取");
+    m_tabWidget->addTab(m_imageTab, QS("图片提取"));
     
     // 连接信号
     connect(m_testImageExtractionButton, &QPushButton::clicked, this, &DocxContentTestWidget::testImageExtraction);
@@ -164,9 +165,9 @@ void DocxContentTestWidget::setupTableTab()
     
     // 按钮区域
     QHBoxLayout *buttonLayout = new QHBoxLayout();
-    m_testTableExtractionButton = new QPushButton("提取表格", m_tableTab);
-    m_testTableExportToXmlButton = new QPushButton("导出为XML", m_tableTab);
-    m_testTableExportToStandardButton = new QPushButton("导出为CSV", m_tableTab);
+    m_testTableExtractionButton = new QPushButton(QS("提取表格"), m_tableTab);
+    m_testTableExportToXmlButton = new QPushButton(QS("导出为XML"), m_tableTab);
+    m_testTableExportToStandardButton = new QPushButton(QS("导出为CSV"), m_tableTab);
     
     buttonLayout->addWidget(m_testTableExtractionButton);
     buttonLayout->addWidget(m_testTableExportToXmlButton);
@@ -174,7 +175,7 @@ void DocxContentTestWidget::setupTableTab()
     buttonLayout->addStretch();
     
     // 表格显示
-    QGroupBox *tableGroup = new QGroupBox("表格内容", m_tableTab);
+    QGroupBox *tableGroup = new QGroupBox(QS("表格内容"), m_tableTab);
     QVBoxLayout *tableLayout = new QVBoxLayout(tableGroup);
     m_tableTableWidget = new QTableWidget(m_tableTab);
     m_tableTableWidget->horizontalHeader()->setStretchLastSection(true);
@@ -183,7 +184,7 @@ void DocxContentTestWidget::setupTableTab()
     layout->addLayout(buttonLayout);
     layout->addWidget(tableGroup);
     
-    m_tabWidget->addTab(m_tableTab, "表格提取");
+    m_tabWidget->addTab(m_tableTab, QS("表格提取"));
     
     // 连接信号
     connect(m_testTableExtractionButton, &QPushButton::clicked, this, &DocxContentTestWidget::testTableExtraction);
@@ -198,9 +199,9 @@ void DocxContentTestWidget::setupChartTab()
     
     // 按钮区域
     QHBoxLayout *buttonLayout = new QHBoxLayout();
-    m_testChartExtractionButton = new QPushButton("提取图表", m_chartTab);
-    m_testChartExportToXmlButton = new QPushButton("导出为XML", m_chartTab);
-    m_testChartExportToStandardButton = new QPushButton("导出为CSV", m_chartTab);
+    m_testChartExtractionButton = new QPushButton(QS("提取图表"), m_chartTab);
+    m_testChartExportToXmlButton = new QPushButton(QS("导出为XML"), m_chartTab);
+    m_testChartExportToStandardButton = new QPushButton(QS("导出为CSV"), m_chartTab);
     
     buttonLayout->addWidget(m_testChartExtractionButton);
     buttonLayout->addWidget(m_testChartExportToXmlButton);
@@ -211,17 +212,17 @@ void DocxContentTestWidget::setupChartTab()
     QSplitter *splitter = new QSplitter(Qt::Horizontal, m_chartTab);
     
     // 图表列表
-    QGroupBox *listGroup = new QGroupBox("图表列表", m_chartTab);
+    QGroupBox *listGroup = new QGroupBox(QS("图表列表"), m_chartTab);
     QVBoxLayout *listLayout = new QVBoxLayout(listGroup);
     m_chartListWidget = new QListWidget(m_chartTab);
     listLayout->addWidget(m_chartListWidget);
     
     // 图表详情表格
-    QGroupBox *tableGroup = new QGroupBox("图表详情", m_chartTab);
+    QGroupBox *tableGroup = new QGroupBox(QS("图表详情"), m_chartTab);
     QVBoxLayout *tableLayout = new QVBoxLayout(tableGroup);
     m_chartTableWidget = new QTableWidget(m_chartTab);
     m_chartTableWidget->setColumnCount(5);
-    m_chartTableWidget->setHorizontalHeaderLabels({"ID", "类型", "标题", "数据系列", "属性"});
+    m_chartTableWidget->setHorizontalHeaderLabels({QS("ID"), QS("类型"), QS("标题"), QS("数据系列"), QS("属性")});
     m_chartTableWidget->horizontalHeader()->setStretchLastSection(true);
     tableLayout->addWidget(m_chartTableWidget);
     
@@ -232,7 +233,7 @@ void DocxContentTestWidget::setupChartTab()
     layout->addLayout(buttonLayout);
     layout->addWidget(splitter);
     
-    m_tabWidget->addTab(m_chartTab, "图表提取");
+    m_tabWidget->addTab(m_chartTab, QS("图表提取"));
     
     // 连接信号
     connect(m_testChartExtractionButton, &QPushButton::clicked, this, &DocxContentTestWidget::testChartExtraction);
@@ -242,10 +243,10 @@ void DocxContentTestWidget::setupChartTab()
 
 void DocxContentTestWidget::openDocxFile()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, "打开DOCX文件", "", "DOCX文件 (*.docx)");
+    QString fileName = QFileDialog::getOpenFileName(this, QS("打开DOCX文件"), QS(""), QS("DOCX文件 (*.docx)"));
     if (!fileName.isEmpty()) {
         m_currentFilePath = fileName;
-        logMessage(QString("已选择文件: %1").arg(fileName));
+        logMessage(QString(QS("已选择文件: %1")).arg(fileName));
         clearResults();
     }
 }
@@ -253,14 +254,14 @@ void DocxContentTestWidget::openDocxFile()
 void DocxContentTestWidget::saveResults()
 {
     if (m_currentImages.isEmpty() && m_currentTables.isEmpty() && m_currentCharts.isEmpty()) {
-        QMessageBox::information(this, "提示", "没有可保存的结果");
+        QMessageBox::information(this, QS("提示"), QS("没有可保存的结果"));
         return;
     }
     
-    QString fileName = QFileDialog::getSaveFileName(this, "保存结果", "", "JSON文件 (*.json)");
+    QString fileName = QFileDialog::getSaveFileName(this, QS("保存结果"), QS(""), QS("JSON文件 (*.json)"));
     if (!fileName.isEmpty()) {
         // 这里可以实现保存逻辑
-        logMessage(QString("结果已保存到: %1").arg(fileName));
+        logMessage(QString(QS("结果已保存到: %1")).arg(fileName));
     }
 }
 
@@ -276,17 +277,17 @@ void DocxContentTestWidget::clearResults()
     m_chartListWidget->clear();
     m_chartTableWidget->setRowCount(0);
     
-    logMessage("结果已清空");
+    logMessage(QS("结果已清空"));
 }
 
 void DocxContentTestWidget::testImageExtraction()
 {
     if (m_currentFilePath.isEmpty()) {
-        QMessageBox::warning(this, "警告", "请先选择DOCX文件");
+        QMessageBox::warning(this, QS("警告"), QS("请先选择DOCX文件"));
         return;
     }
     
-    logMessage("开始提取图片...");
+    logMessage(QS("开始提取图片..."));
     m_progressBar->setVisible(true);
     m_progressBar->setRange(0, 0);
     
@@ -298,20 +299,20 @@ void DocxContentTestWidget::testImageExtraction()
     if (status == ContentExtractor::ExtractStatus::SUCCESS) {
         m_currentImages = images;
         displayImageResults(images);
-        logMessage(QString("成功提取 %1 张图片").arg(images.size()));
+        logMessage(QString(QS("成功提取 %1 张图片")).arg(images.size()));
     } else {
-        logMessage(QString("图片提取失败: %1").arg(m_imageExtractor->getLastError()), "ERROR");
+        logMessage(QString(QS("图片提取失败: %1")).arg(m_imageExtractor->getLastError()), QS("ERROR"));
     }
 }
 
 void DocxContentTestWidget::testTableExtraction()
 {
     if (m_currentFilePath.isEmpty()) {
-        QMessageBox::warning(this, "警告", "请先选择DOCX文件");
+        QMessageBox::warning(this, QS("警告"), QS("请先选择DOCX文件"));
         return;
     }
     
-    logMessage("开始提取表格...");
+    logMessage(QS("开始提取表格..."));
     m_progressBar->setVisible(true);
     m_progressBar->setRange(0, 0);
     
@@ -323,20 +324,20 @@ void DocxContentTestWidget::testTableExtraction()
     if (status == ContentExtractor::ExtractStatus::SUCCESS) {
         m_currentTables = tables;
         displayTableResults(tables);
-        logMessage(QString("成功提取 %1 个表格").arg(tables.size()));
+        logMessage(QString(QS("成功提取 %1 个表格")).arg(tables.size()));
     } else {
-        logMessage(QString("表格提取失败: %1").arg(m_tableExtractor->getLastError()), "ERROR");
+        logMessage(QString(QS("表格提取失败: %1")).arg(m_tableExtractor->getLastError()), QS("ERROR"));
     }
 }
 
 void DocxContentTestWidget::testChartExtraction()
 {
     if (m_currentFilePath.isEmpty()) {
-        QMessageBox::warning(this, "警告", "请先选择DOCX文件");
+        QMessageBox::warning(this, QS("警告"), QS("请先选择DOCX文件"));
         return;
     }
     
-    logMessage("开始提取图表...");
+    logMessage(QS("开始提取图表..."));
     m_progressBar->setVisible(true);
     m_progressBar->setRange(0, 0);
     
@@ -348,9 +349,9 @@ void DocxContentTestWidget::testChartExtraction()
     if (status == ContentExtractor::ExtractStatus::SUCCESS) {
         m_currentCharts = charts;
         displayChartResults(charts);
-        logMessage(QString("成功提取 %1 个图表").arg(charts.size()));
+        logMessage(QString(QS("成功提取 %1 个图表")).arg(charts.size()));
     } else {
-        logMessage(QString("图表提取失败: %1").arg(m_chartExtractor->getLastError()), "ERROR");
+        logMessage(QString(QS("图表提取失败: %1")).arg(m_chartExtractor->getLastError()), QS("ERROR"));
     }
 }
 
@@ -364,12 +365,12 @@ void DocxContentTestWidget::displayImageResults(const QList<ImageInfo> &images)
         const ImageInfo &image = images[i];
         
         // 添加到列表
-        m_imageListWidget->addItem(QString("图片 %1 (%2)").arg(i + 1).arg(image.format));
+        m_imageListWidget->addItem(QString(QS("图片 %1 (%2)")).arg(i + 1).arg(image.format));
         
         // 添加到表格
         m_imageTableWidget->setItem(i, 0, new QTableWidgetItem(image.id));
         m_imageTableWidget->setItem(i, 1, new QTableWidgetItem(image.format));
-        m_imageTableWidget->setItem(i, 2, new QTableWidgetItem(QString("%1x%2").arg(image.size.width()).arg(image.size.height())));
+        m_imageTableWidget->setItem(i, 2, new QTableWidgetItem(QString(QS("%1x%2")).arg(image.size.width()).arg(image.size.height())));
         m_imageTableWidget->setItem(i, 3, new QTableWidgetItem(image.savedPath));
     }
 }
@@ -405,21 +406,21 @@ void DocxContentTestWidget::displayChartResults(const QList<ChartInfo> &charts)
         const ChartInfo &chart = charts[i];
         
         // 添加到列表
-        m_chartListWidget->addItem(QString("图表 %1 (%2)").arg(i + 1).arg(chart.title));
+        m_chartListWidget->addItem(QString(QS("图表 %1 (%2)")).arg(i + 1).arg(chart.title));
         
         // 添加到表格
         m_chartTableWidget->setItem(i, 0, new QTableWidgetItem(chart.id));
         m_chartTableWidget->setItem(i, 1, new QTableWidgetItem(QString::number(static_cast<int>(chart.type))));
         m_chartTableWidget->setItem(i, 2, new QTableWidgetItem(chart.title));
         m_chartTableWidget->setItem(i, 3, new QTableWidgetItem(QString::number(chart.series.size())));
-        m_chartTableWidget->setItem(i, 4, new QTableWidgetItem("查看详情"));
+        m_chartTableWidget->setItem(i, 4, new QTableWidgetItem(QS("查看详情")));
     }
 }
 
 void DocxContentTestWidget::logMessage(const QString &message, const QString &type)
 {
-    QString timestamp = QDateTime::currentDateTime().toString("hh:mm:ss");
-    QString logEntry = QString("[%1] [%2] %3").arg(timestamp, type, message);
+    QString timestamp = QDateTime::currentDateTime().toString(QS("hh:mm:ss"));
+    QString logEntry = QString(QS("[%1] [%2] %3")).arg(timestamp, type, message);
     m_logTextEdit->append(logEntry);
 }
 
@@ -437,60 +438,60 @@ void DocxContentTestWidget::clearLog()
 void DocxContentTestWidget::testImageExportToXml()
 {
     if (m_currentImages.isEmpty()) {
-        QMessageBox::information(this, "提示", "没有可导出的图片");
+        QMessageBox::information(this, QS("提示"), QS("没有可导出的图片"));
         return;
     }
     
-    QString fileName = QFileDialog::getSaveFileName(this, "保存图片XML", "", "XML文件 (*.xml)");
+    QString fileName = QFileDialog::getSaveFileName(this, QS("保存图片XML"), QS(""), QS("XML文件 (*.xml)"));
     if (fileName.isEmpty()) return;
     
-    logMessage("开始导出图片为XML...");
+    logMessage(QS("开始导出图片为XML..."));
     if (m_imageExtractor->exportToXml(m_currentImages, fileName)) {
-        logMessage("成功导出图片XML文件: " + fileName);
-        QMessageBox::information(this, "成功", "图片XML导出成功！");
+        logMessage(QS("成功导出图片XML文件: ") + fileName);
+        QMessageBox::information(this, QS("成功"), QS("图片XML导出成功！"));
     } else {
-        logMessage("图片XML导出失败: " + m_imageExtractor->getLastError());
-        QMessageBox::warning(this, "错误", "图片XML导出失败！");
+        logMessage(QS("图片XML导出失败: ") + m_imageExtractor->getLastError());
+        QMessageBox::warning(this, QS("错误"), QS("图片XML导出失败！"));
     }
 }
 
 void DocxContentTestWidget::testTableExportToXml()
 {
     if (m_currentTables.isEmpty()) {
-        QMessageBox::information(this, "提示", "没有可导出的表格");
+        QMessageBox::information(this, QS("提示"), QS("没有可导出的表格"));
         return;
     }
     
-    QString fileName = QFileDialog::getSaveFileName(this, "保存表格XML", "", "XML文件 (*.xml)");
+    QString fileName = QFileDialog::getSaveFileName(this, QS("保存表格XML"), QS(""), QS("XML文件 (*.xml)"));
     if (fileName.isEmpty()) return;
     
-    logMessage("开始导出表格为XML...");
+    logMessage(QS("开始导出表格为XML..."));
     if (m_tableExtractor->exportToXml(m_currentTables, fileName)) {
-        logMessage("成功导出表格XML文件: " + fileName);
-        QMessageBox::information(this, "成功", "表格XML导出成功！");
+        logMessage(QS("成功导出表格XML文件: ") + fileName);
+        QMessageBox::information(this, QS("成功"), QS("表格XML导出成功！"));
     } else {
-        logMessage("表格XML导出失败: " + m_tableExtractor->getLastError());
-        QMessageBox::warning(this, "错误", "表格XML导出失败！");
+        logMessage(QS("表格XML导出失败: ") + m_tableExtractor->getLastError());
+        QMessageBox::warning(this, QS("错误"), QS("表格XML导出失败！"));
     }
 }
 
 void DocxContentTestWidget::testChartExportToXml()
 {
     if (m_currentCharts.isEmpty()) {
-        QMessageBox::information(this, "提示", "没有可导出的图表");
+        QMessageBox::information(this, QS("提示"), QS("没有可导出的图表"));
         return;
     }
     
-    QString fileName = QFileDialog::getSaveFileName(this, "保存图表XML", "", "XML文件 (*.xml)");
+    QString fileName = QFileDialog::getSaveFileName(this, QS("保存图表XML"), QS(""), QS("XML文件 (*.xml)"));
     if (fileName.isEmpty()) return;
     
-    logMessage("开始导出图表为XML...");
+    logMessage(QS("开始导出图表为XML..."));
     if (m_chartExtractor->exportToXml(m_currentCharts, fileName)) {
-        logMessage("成功导出图表XML文件: " + fileName);
-        QMessageBox::information(this, "成功", "图表XML导出成功！");
+        logMessage(QS("成功导出图表XML文件: ") + fileName);
+        QMessageBox::information(this, QS("成功"), QS("图表XML导出成功！"));
     } else {
-        logMessage("图表XML导出失败: " + m_chartExtractor->getLastError());
-        QMessageBox::warning(this, "错误", "图表XML导出失败！");
+        logMessage(QS("图表XML导出失败: ") + m_chartExtractor->getLastError());
+        QMessageBox::warning(this, QS("错误"), QS("图表XML导出失败！"));
     }
 }
 
@@ -498,18 +499,18 @@ void DocxContentTestWidget::testChartExportToXml()
 void DocxContentTestWidget::testImageExportToStandard()
 {
     if (m_currentImages.isEmpty()) {
-        QMessageBox::information(this, "提示", "没有可导出的图片");
+        QMessageBox::information(this, QS("提示"), QS("没有可导出的图片"));
         return;
     }
     
-    logMessage("开始导出图片为标准格式...");
+    logMessage(QS("开始导出图片为标准格式..."));
     m_progressBar->setVisible(true);
     m_progressBar->setRange(0, m_currentImages.size());
     
     int successCount = 0;
     for (int i = 0; i < m_currentImages.size(); ++i) {
         const ImageInfo &image = m_currentImages[i];
-        QString outputPath = QString("%1/image_%2.%3").arg(m_outputDirectory, image.id, image.format);
+        QString outputPath = QString(QS("%1/image_%2.%3")).arg(m_outputDirectory, image.id, image.format);
         
         if (m_imageExtractor->saveImage(image, outputPath)) {
             successCount++;
@@ -519,27 +520,27 @@ void DocxContentTestWidget::testImageExportToStandard()
     }
     
     m_progressBar->setVisible(false);
-    logMessage(QString("成功导出 %1/%2 张图片为标准格式").arg(successCount).arg(m_currentImages.size()));
-    QMessageBox::information(this, "成功", QString("成功导出 %1 张图片为标准格式！").arg(successCount));
+    logMessage(QString(QS("成功导出 %1/%2 张图片为标准格式")).arg(successCount).arg(m_currentImages.size()));
+    QMessageBox::information(this, QS("成功"), QString(QS("成功导出 %1 张图片为标准格式！")).arg(successCount));
 }
 
 void DocxContentTestWidget::testTableExportToStandard()
 {
     if (m_currentTables.isEmpty()) {
-        QMessageBox::information(this, "提示", "没有可导出的表格");
+        QMessageBox::information(this, QS("提示"), QS("没有可导出的表格"));
         return;
     }
     
-    QString fileName = QFileDialog::getSaveFileName(this, "保存表格CSV", "", "CSV文件 (*.csv)");
+    QString fileName = QFileDialog::getSaveFileName(this, QS("保存表格CSV"), QS(""), QS("CSV文件 (*.csv)"));
     if (fileName.isEmpty()) return;
     
-    logMessage("开始导出表格为CSV...");
+    logMessage(QS("开始导出表格为CSV..."));
     int successCount = 0;
     for (const TableInfo &table : m_currentTables) {
         QString csvFileName = fileName;
         if (m_currentTables.size() > 1) {
             QFileInfo fileInfo(fileName);
-            csvFileName = QString("%1/%2_%3.csv").arg(fileInfo.absolutePath(), fileInfo.baseName(), table.id);
+            csvFileName = QString(QS("%1/%2_%3.csv")).arg(fileInfo.absolutePath(), fileInfo.baseName(), table.id);
         }
         
         if (m_tableExtractor->exportToCsv(table, csvFileName)) {
@@ -547,27 +548,27 @@ void DocxContentTestWidget::testTableExportToStandard()
         }
     }
     
-    logMessage(QString("成功导出 %1/%2 个表格为CSV").arg(successCount).arg(m_currentTables.size()));
-    QMessageBox::information(this, "成功", QString("成功导出 %1 个表格为CSV！").arg(successCount));
+    logMessage(QString(QS("成功导出 %1/%2 个表格为CSV")).arg(successCount).arg(m_currentTables.size()));
+    QMessageBox::information(this, QS("成功"), QString(QS("成功导出 %1 个表格为CSV！")).arg(successCount));
 }
 
 void DocxContentTestWidget::testChartExportToStandard()
 {
     if (m_currentCharts.isEmpty()) {
-        QMessageBox::information(this, "提示", "没有可导出的图表");
+        QMessageBox::information(this, QS("提示"), QS("没有可导出的图表"));
         return;
     }
     
-    QString fileName = QFileDialog::getSaveFileName(this, "保存图表CSV", "", "CSV文件 (*.csv)");
+    QString fileName = QFileDialog::getSaveFileName(this, QS("保存图表CSV"), QS(""), QS("CSV文件 (*.csv)"));
     if (fileName.isEmpty()) return;
     
-    logMessage("开始导出图表为CSV...");
+    logMessage(QS("开始导出图表为CSV..."));
     int successCount = 0;
     for (const ChartInfo &chart : m_currentCharts) {
         QString csvFileName = fileName;
         if (m_currentCharts.size() > 1) {
             QFileInfo fileInfo(fileName);
-            csvFileName = QString("%1/%2_%3.csv").arg(fileInfo.absolutePath(), fileInfo.baseName(), chart.id);
+            csvFileName = QString(QS("%1/%2_%3.csv")).arg(fileInfo.absolutePath(), fileInfo.baseName(), chart.id);
         }
         
         if (m_chartExtractor->exportToCsv(chart, csvFileName)) {
@@ -575,6 +576,6 @@ void DocxContentTestWidget::testChartExportToStandard()
         }
     }
     
-    logMessage(QString("成功导出 %1/%2 个图表为CSV").arg(successCount).arg(m_currentCharts.size()));
-    QMessageBox::information(this, "成功", QString("成功导出 %1 个图表为CSV！").arg(successCount));
+    logMessage(QString(QS("成功导出 %1/%2 个图表为CSV")).arg(successCount).arg(m_currentCharts.size()));
+    QMessageBox::information(this, QS("成功"), QString(QS("成功导出 %1 个图表为CSV！")).arg(successCount));
 }

@@ -1,3 +1,4 @@
+#include "QtCompat.h"
 #include "LogSystem.h"
 #include <QApplication>
 #include <QScrollBar>

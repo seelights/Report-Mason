@@ -1,3 +1,4 @@
+#include "QtCompat.h"
 #include "XmlTestWidget.h"
 #include "DocToXmlConverter.h"
 #include "PdfToXmlConverter.h"

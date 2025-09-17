@@ -13,12 +13,18 @@
 #include "qbuffer.h"
 #include "qimage.h"
 #include <QFileInfo>
+#include "QtCompat.h"
 #include <QDebug>
 #include <QFile>
 #include <QRegularExpression>
+#include "../../src/PopplerCompat.h"
+
+// 根据Poppler可用性决定是否使用Poppler
+#include "poppler-qt6-simple.h"
+#include <memory>
 
 // 静态常量定义
-const QStringList PdfImageExtractor::SUPPORTED_EXTENSIONS = {"pdf"};
+const QStringList PdfImageExtractor::SUPPORTED_EXTENSIONS = {QS("pdf")};
 
 PdfImageExtractor::PdfImageExtractor(QObject* parent)
     : ImageExtractor(parent), m_popplerDocument(nullptr)
@@ -39,33 +45,39 @@ ImageExtractor::ExtractStatus PdfImageExtractor::extractImages(const QString& fi
                                                                QList<ImageInfo>& images)
 {
     if (!isSupported(filePath)) {
-        setLastError("不支持的文件格式，仅支持.pdf文件");
+        setLastError(QS("不支持的文件格式，仅支持.pdf文件"));
         return ExtractStatus::INVALID_FORMAT;
     }
 
     if (!validateFilePath(filePath)) {
-        setLastError("文件不存在或无法读取");
+        setLastError(QS("文件不存在或无法读取"));
         return ExtractStatus::FILE_NOT_FOUND;
     }
 
     try {
-        // 优先使用Poppler解析PDF文件
-        if (parsePdfWithPoppler(filePath, images)) {
-            qDebug() << "PdfImageExtractor: 使用Poppler成功提取" << images.size() << "个图片";
-            return ExtractStatus::SUCCESS;
+        // 检查Poppler是否可用
+        if (PopplerCompat::isPopplerAvailable()) {
+            // 优先使用Poppler解析PDF文件
+            if (parsePdfWithPoppler(filePath, images)) {
+                qDebug() << "PdfImageExtractor: 使用Poppler成功提取" << images.size() << "个图片";
+                return ExtractStatus::SUCCESS;
+            }
+
+            // 如果Poppler失败，回退到正则表达式方法
+            qDebug() << "PdfImageExtractor: Poppler解析失败，使用正则表达式方法";
+        } else {
+            qDebug() << "PdfImageExtractor: Poppler不可用，使用正则表达式方法";
         }
         
-        // 如果Poppler失败，回退到正则表达式方法
-        qDebug() << "PdfImageExtractor: Poppler解析失败，使用正则表达式方法";
         if (!parsePdfFile(filePath, images)) {
-            setLastError("解析PDF文件失败");
+            setLastError(QS("解析PDF文件失败"));
             return ExtractStatus::PARSE_ERROR;
         }
 
         qDebug() << "PdfImageExtractor: 使用正则表达式成功提取" << images.size() << "个图片";
         return ExtractStatus::SUCCESS;
     } catch (const std::exception& e) {
-        setLastError(QString("提取图片时发生异常: %1").arg(e.what()));
+        setLastError(QS("提取图片时发生异常: %1").arg(QString::fromUtf8(e.what())));
         return ExtractStatus::UNKNOWN_ERROR;
     }
 }
@@ -139,11 +151,11 @@ bool PdfImageExtractor::parsePdfFile(const QString& filePath, QList<ImageInfo>& 
 
     // 多种图片对象模式匹配
     QList<QRegularExpression> patterns = {
-        QRegularExpression(R"(\/Im(\d+)\s+\d+\s+R)"), // 标准图片对象
-        QRegularExpression(R"(\/XObject\s*<<[^>]*\/Subtype\s*\/Image[^>]*>>)"), // XObject图片
-        QRegularExpression(R"(\/Type\s*\/XObject[^>]*\/Subtype\s*\/Image)"),    // 类型图片
-        QRegularExpression(R"(\/Width\s+(\d+)[^>]*\/Height\s+(\d+))"),          // 尺寸信息
-        QRegularExpression(R"(\/Filter\s*\/([A-Za-z]+))")                       // 图片格式
+        QRegularExpression(QS(R"(\/Im(\d+)\s+\d+\s+R)")), // 标准图片对象
+        QRegularExpression(QS(R"(\/XObject\s*<<[^>]*\/Subtype\s*\/Image[^>]*>>)")), // XObject图片
+        QRegularExpression(QS(R"(\/Type\s*\/XObject[^>]*\/Subtype\s*\/Image)")),    // 类型图片
+        QRegularExpression(QS(R"(\/Width\s+(\d+)[^>]*\/Height\s+(\d+))")),          // 尺寸信息
+        QRegularExpression(QS(R"(\/Filter\s*\/([A-Za-z]+))"))                       // 图片格式
     };
 
     int totalMatches = 0;
@@ -160,18 +172,18 @@ bool PdfImageExtractor::parsePdfFile(const QString& filePath, QList<ImageInfo>& 
 
                 // 创建图片信息
                 ImageInfo image;
-                image.id = generateUniqueId("pdf_image");
-                image.format = "pdf_embedded";
+                image.id = generateUniqueId(QS("pdf_image"));
+                image.format = QS("pdf_embedded");
                 image.size = QSize(150, 100); // 默认尺寸
-                image.originalPath = QString("PDF图片对象: %1").arg(imageRef);
+                image.originalPath = QS("PDF图片对象: %1").arg(imageRef);
                 image.isEmbedded = true;
 
                 // 添加详细的元数据
-                image.metadata["pdfObjectId"] = imageRef;
-                image.metadata["source"] = "PDF";
-                image.metadata["extractionMethod"] = "regex_advanced";
-                image.metadata["fileSize"] = QString::number(pdfData.size());
-                image.metadata["pattern"] = pattern.pattern();
+                image.metadata[QS("pdfObjectId")] = imageRef;
+                image.metadata[QS("source")] = QS("PDF");
+                image.metadata[QS("extractionMethod")] = QS("regex_advanced");
+                image.metadata[QS("fileSize")] = QString::number(pdfData.size());
+                image.metadata[QS("pattern")] = pattern.pattern();
 
                 images.append(image);
                 totalMatches++;
@@ -188,16 +200,16 @@ bool PdfImageExtractor::parsePdfFile(const QString& filePath, QList<ImageInfo>& 
         // 创建多个示例图片
         for (int i = 0; i < 3; ++i) {
             ImageInfo sampleImage;
-            sampleImage.id = generateUniqueId("pdf_sample");
-            sampleImage.format = "png";
+            sampleImage.id = generateUniqueId(QS("pdf_sample"));
+            sampleImage.format = QS("png");
             sampleImage.size = QSize(200 + i * 50, 150 + i * 30);
-            sampleImage.originalPath = QString("PDF示例图片 %1").arg(i + 1);
-            sampleImage.description = "这是一个PDF示例图片（模拟数据）";
+            sampleImage.originalPath = QS("PDF示例图片 %1").arg(i + 1);
+            sampleImage.description = QS("这是一个PDF示例图片（模拟数据）");
             sampleImage.isEmbedded = true;
 
-            sampleImage.metadata["source"] = "PDF";
-            sampleImage.metadata["extractionMethod"] = "sample";
-            sampleImage.metadata["note"] = "实际实现需要PDF库支持";
+            sampleImage.metadata[QS("source")] = QS("PDF");
+            sampleImage.metadata[QS("extractionMethod")] = QS("sample");
+            sampleImage.metadata[QS("note")] = QS("实际实现需要PDF库支持");
 
             images.append(sampleImage);
             qDebug() << "PdfImageExtractor: 添加了示例图片" << (i + 1);
@@ -288,7 +300,7 @@ bool PdfImageExtractor::parsePdfWithPoppler(const QString& filePath, QList<Image
         }
 
         if (!m_popplerDocument) {
-            setLastError("Poppler文档未加载");
+            setLastError(QS("Poppler文档未加载"));
             return false;
         }
 
@@ -299,18 +311,18 @@ bool PdfImageExtractor::parsePdfWithPoppler(const QString& filePath, QList<Image
             QImage pageImage = renderPageWithPoppler(i, 150);
             if (!pageImage.isNull()) {
                 ImageInfo image;
-                image.id = generateUniqueId("poppler_image");
-                image.format = "png";
+                image.id = generateUniqueId(QS("poppler_image"));
+                image.format = QS("png");
                 image.size = pageImage.size();
-                image.originalPath = QString("PDF页面 %1").arg(i + 1);
-                image.description = QString("从PDF第%1页提取的图片").arg(i + 1);
+                image.originalPath = QS("PDF页面 %1").arg(i + 1);
+                image.description = QS("从PDF第%1页提取的图片").arg(i + 1);
                 image.isEmbedded = true;
 
                 // 添加元数据
-                image.metadata["source"] = "PDF_Poppler";
-                image.metadata["pageNumber"] = QString::number(i + 1);
-                image.metadata["extractionMethod"] = "poppler_render";
-                image.metadata["dpi"] = "150";
+                image.metadata[QS("source")] = QS("PDF_Poppler");
+                image.metadata[QS("pageNumber")] = QString::number(i + 1);
+                image.metadata[QS("extractionMethod")] = QS("poppler_render");
+                image.metadata[QS("dpi")] = QS("150");
 
                 // 保存图片数据
                 QBuffer buffer(&image.data);
@@ -325,7 +337,7 @@ bool PdfImageExtractor::parsePdfWithPoppler(const QString& filePath, QList<Image
         return true;
 
     } catch (const std::exception& e) {
-        setLastError(QString("Poppler解析PDF时发生异常: %1").arg(e.what()));
+        setLastError(QS("Poppler解析PDF时发生异常: %1").arg(QString::fromUtf8(e.what())));
         return false;
     }
 }
@@ -337,14 +349,17 @@ QImage PdfImageExtractor::renderPageWithPoppler(int pageNumber, int dpi) const
     }
 
     try {
-        // 获取页面（Qt版本，使用unique_ptr）
-        std::unique_ptr<Poppler::Page> page = m_popplerDocument->page(pageNumber);
+        // 获取页面（Qt版本）
+        Poppler::Page* page = m_popplerDocument->page(pageNumber);
         if (!page) {
             return QImage();
         }
 
         // 渲染页面为图像（Qt版本）
         QImage image = page->renderToImage(dpi, dpi);
+        
+        // 清理页面对象
+        delete page;
 
         return image;
     } catch (const std::exception& e) {
@@ -362,12 +377,12 @@ bool PdfImageExtractor::loadPopplerDocument(const QString& filePath)
         // 加载PDF文档（Qt版本）
         m_popplerDocument = Poppler::Document::load(filePath);
         if (!m_popplerDocument) {
-            setLastError("无法加载PDF文档");
+            setLastError(QS("无法加载PDF文档"));
             return false;
         }
 
         if (m_popplerDocument->isLocked()) {
-            setLastError("PDF文档已加密");
+            setLastError(QS("PDF文档已加密"));
             m_popplerDocument.reset();
             return false;
         }
@@ -377,7 +392,7 @@ bool PdfImageExtractor::loadPopplerDocument(const QString& filePath)
         return true;
 
     } catch (const std::exception& e) {
-        setLastError(QString("加载Poppler文档时发生异常: %1").arg(e.what()));
+        setLastError(QS("加载Poppler文档时发生异常: %1").arg(QString::fromUtf8(e.what())));
         return false;
     }
 }

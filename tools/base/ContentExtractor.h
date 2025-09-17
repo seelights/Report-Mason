@@ -122,7 +122,7 @@ protected:
      * @param prefix 前缀
      * @return 唯一ID
      */
-    QString generateUniqueId(const QString &prefix = "content");
+    QString generateUniqueId(const QString &prefix = QStringLiteral("content"));
 
     /**
      * @brief 保存内容到文件

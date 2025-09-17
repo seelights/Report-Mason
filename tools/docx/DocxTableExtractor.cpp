@@ -8,14 +8,15 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
+#include "QtCompat.h"
 #include "DocxTableExtractor.h"
 #include "../utils/ContentUtils.h"
 #include <QFileInfo>
 #include <QDebug>
 
 // 静态常量定义
-const QStringList DocxTableExtractor::SUPPORTED_EXTENSIONS = {"docx"};
-const QString DocxTableExtractor::DOCX_DOCUMENT_PATH = "word/document.xml";
+const QStringList DocxTableExtractor::SUPPORTED_EXTENSIONS = {QS("docx")};
+const QString DocxTableExtractor::DOCX_DOCUMENT_PATH = QS("word/document.xml");
 
 DocxTableExtractor::DocxTableExtractor(QObject* parent) : TableExtractor(parent) {}
 
@@ -33,31 +34,31 @@ TableExtractor::ExtractStatus DocxTableExtractor::extractTables(const QString& f
                                                                 QList<TableInfo>& tables)
 {
     if (!isSupported(filePath)) {
-        setLastError("不支持的文件格式，仅支持.docx文件");
+        setLastError(QS("不支持的文件格式，仅支持.docx文件"));
         return ExtractStatus::INVALID_FORMAT;
     }
 
     if (!validateFilePath(filePath)) {
-        setLastError("文件不存在或无法读取");
+        setLastError(QS("文件不存在或无法读取"));
         return ExtractStatus::FILE_NOT_FOUND;
     }
 
     // 验证ZIP文件
     if (!KZipUtils::isValidZip(filePath)) {
-        setLastError("无效的DOCX文件格式");
+        setLastError(QS("无效的DOCX文件格式"));
         return ExtractStatus::INVALID_FORMAT;
     }
 
     // 读取document.xml
     QByteArray xmlContent;
     if (!KZipUtils::readFileFromZip(filePath, DOCX_DOCUMENT_PATH, xmlContent)) {
-        setLastError("无法读取DOCX文档内容");
+        setLastError(QS("无法读取DOCX文档内容"));
         return ExtractStatus::PARSE_ERROR;
     }
 
     // 解析XML内容
     if (!parseDocumentXml(xmlContent, tables)) {
-        setLastError("解析DOCX文档XML失败");
+        setLastError(QS("解析DOCX文档XML失败"));
         return ExtractStatus::PARSE_ERROR;
     }
 
@@ -117,7 +118,7 @@ bool DocxTableExtractor::parseDocumentXml(const QByteArray& xmlContent, QList<Ta
         if (token == QXmlStreamReader::StartElement) {
             QString elementName = reader.name().toString();
 
-            if (elementName == "tbl") {
+            if (elementName == QS("tbl")) {
                 parseTableElement(reader, tables);
             }
         }
@@ -129,7 +130,7 @@ bool DocxTableExtractor::parseDocumentXml(const QByteArray& xmlContent, QList<Ta
 bool DocxTableExtractor::parseTableElement(QXmlStreamReader& reader, QList<TableInfo>& tables)
 {
     TableInfo table;
-    table.id = generateUniqueId("table");
+    table.id = generateUniqueId(QS("table"));
     table.rows = 0;
     table.columns = 0;
 
@@ -140,7 +141,7 @@ bool DocxTableExtractor::parseTableElement(QXmlStreamReader& reader, QList<Table
         if (token == QXmlStreamReader::StartElement) {
             QString elementName = reader.name().toString();
 
-            if (elementName == "tr") {
+            if (elementName == QS("tr")) {
                 // 解析表格行
                 if (parseTableRow(reader, table)) {
                     table.rows++;
@@ -148,7 +149,7 @@ bool DocxTableExtractor::parseTableElement(QXmlStreamReader& reader, QList<Table
             }
         } else if (token == QXmlStreamReader::EndElement) {
             QString elementName = reader.name().toString();
-            if (elementName == "tbl") {
+            if (elementName == QS("tbl")) {
                 break;
             }
         }
@@ -184,7 +185,7 @@ bool DocxTableExtractor::parseTableRow(QXmlStreamReader& reader, TableInfo& tabl
         if (token == QXmlStreamReader::StartElement) {
             QString elementName = reader.name().toString();
 
-            if (elementName == "tc") {
+            if (elementName == QS("tc")) {
                 // 解析表格单元格
                 CellInfo cell;
                 cell.row = currentRow;
@@ -195,7 +196,7 @@ bool DocxTableExtractor::parseTableRow(QXmlStreamReader& reader, TableInfo& tabl
             }
         } else if (token == QXmlStreamReader::EndElement) {
             QString elementName = reader.name().toString();
-            if (elementName == "tr") {
+            if (elementName == QS("tr")) {
                 break;
             }
         }
@@ -231,23 +232,23 @@ QString DocxTableExtractor::parseTableCell(QXmlStreamReader& reader) const
         if (token == QXmlStreamReader::StartElement) {
             QString elementName = reader.name().toString();
 
-            if (elementName == "t") {
+            if (elementName == QS("t")) {
                 // 读取文本内容
                 QString text = reader.readElementText();
                 content += text;
-            } else if (elementName == "p") {
+            } else if (elementName == QS("p")) {
                 // 段落，递归解析
                 QString paragraphContent;
                 if (parseCellContent(reader, paragraphContent)) {
                     if (!content.isEmpty()) {
-                        content += "\n";
+                        content += QS("\n");
                     }
                     content += paragraphContent;
                 }
             }
         } else if (token == QXmlStreamReader::EndElement) {
             QString elementName = reader.name().toString();
-            if (elementName == "tc") {
+            if (elementName == QS("tc")) {
                 break;
             }
         }

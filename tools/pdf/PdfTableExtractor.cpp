@@ -8,6 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
+#include "QtCompat.h"
 #include "PdfTableExtractor.h"
 #include "../utils/ContentUtils.h"
 #include <QFileInfo>
@@ -17,18 +18,14 @@
 #include <QRegularExpression>
 
 // 静态常量定义
-const QStringList PdfTableExtractor::SUPPORTED_EXTENSIONS = {"pdf"};
+const QStringList PdfTableExtractor::SUPPORTED_EXTENSIONS = {QS("pdf")};
 
-PdfTableExtractor::PdfTableExtractor(QObject* parent) 
-    : TableExtractor(parent)
-    , m_popplerDocument(nullptr)
+PdfTableExtractor::PdfTableExtractor(QObject* parent)
+    : TableExtractor(parent), m_popplerDocument(nullptr)
 {
 }
 
-PdfTableExtractor::~PdfTableExtractor() 
-{
-    closePopplerDocument();
-}
+PdfTableExtractor::~PdfTableExtractor() { closePopplerDocument(); }
 
 bool PdfTableExtractor::isSupported(const QString& filePath) const
 {
@@ -42,29 +39,30 @@ TableExtractor::ExtractStatus PdfTableExtractor::extractTables(const QString& fi
                                                                QList<TableInfo>& tables)
 {
     if (!isSupported(filePath)) {
-        setLastError("不支持的文件格式，仅支持.pdf文件");
+        setLastError(QS("不支持的文件格式，仅支持.pdf文件"));
         return ExtractStatus::INVALID_FORMAT;
     }
 
     if (!validateFilePath(filePath)) {
-        setLastError("文件不存在或无法读取");
+        setLastError(QS("文件不存在或无法读取"));
         return ExtractStatus::FILE_NOT_FOUND;
     }
 
     try {
         // 优先使用Poppler，如果失败则使用正则表达式
         if (!parsePdfWithPoppler(filePath, tables)) {
-            qDebug() << "PdfTableExtractor: Poppler解析失败，使用正则表达式方法";
+            qDebug() << QS("PdfTableExtractor: Poppler解析失败，使用正则表达式方法");
             if (!parsePdfFile(filePath, tables)) {
-                setLastError("解析PDF文件失败");
+                setLastError(QS("解析PDF文件失败"));
                 return ExtractStatus::PARSE_ERROR;
             }
         }
 
-        qDebug() << "PdfTableExtractor: 使用正则表达式成功提取" << tables.size() << "个表格";
+        qDebug() << QS("PdfTableExtractor: 使用正则表达式成功提取") << tables.size()
+                 << QS("个表格");
         return ExtractStatus::SUCCESS;
     } catch (const std::exception& e) {
-        setLastError(QString("提取表格时发生异常: %1").arg(e.what()));
+        setLastError(QS("提取表格时发生异常: %1").arg(QString::fromUtf8(e.what())));
         return ExtractStatus::UNKNOWN_ERROR;
     }
 }
@@ -103,7 +101,7 @@ bool PdfTableExtractor::parsePdfFile(const QString& filePath, QList<TableInfo>& 
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
-        qDebug() << "PdfTableExtractor: 无法打开PDF文件" << filePath;
+        qDebug() << QS("PdfTableExtractor: 无法打开PDF文件") << filePath;
         return false;
     }
 
@@ -114,18 +112,19 @@ bool PdfTableExtractor::parsePdfFile(const QString& filePath, QList<TableInfo>& 
     // 这是一个简化的实现，实际项目中需要专业的PDF库
     QString pdfContent = QString::fromUtf8(pdfData);
 
-    qDebug() << "PdfTableExtractor: 开始分析PDF文件，大小:" << pdfData.size() << "字节";
+    qDebug() << QS("PdfTableExtractor: 开始分析PDF文件，大小:") << pdfData.size() << QS("字节");
 
     // 多种表格模式匹配
     QList<QRegularExpression> tablePatterns = {
-        QRegularExpression(R"((?:数据|结果|表格|Table|Data|Result)[：:\s]*([^\n]+(?:\n[^\n]+)*))",
-                           QRegularExpression::DotMatchesEverythingOption),
         QRegularExpression(
-            R"((?:实验|测试|分析|Analysis|Test|Experiment)[：:\s]*([^\n]+(?:\n[^\n]+)*))",
+            QS(R"((?:数据|结果|表格|Table|Data|Result)[：:\s]*([^\n]+(?:\n[^\n]+)*))"),
             QRegularExpression::DotMatchesEverythingOption),
-        QRegularExpression(R"((?:报告|Report)[：:\s]*([^\n]+(?:\n[^\n]+)*))",
+        QRegularExpression(
+            QS(R"((?:实验|测试|分析|Analysis|Test|Experiment)[：:\s]*([^\n]+(?:\n[^\n]+)*))"),
+            QRegularExpression::DotMatchesEverythingOption),
+        QRegularExpression(QS(R"((?:报告|Report)[：:\s]*([^\n]+(?:\n[^\n]+)*))"),
                            QRegularExpression::DotMatchesEverythingOption),
-        QRegularExpression(R"((?:统计|统计|Statistics)[：:\s]*([^\n]+(?:\n[^\n]+)*))",
+        QRegularExpression(QS(R"((?:统计|统计|Statistics)[：:\s]*([^\n]+(?:\n[^\n]+)*))"),
                            QRegularExpression::DotMatchesEverythingOption)};
 
     int totalTables = 0;
@@ -146,11 +145,11 @@ bool PdfTableExtractor::parsePdfFile(const QString& filePath, QList<TableInfo>& 
 
             // 创建表格信息
             TableInfo table;
-            table.id = generateUniqueId("pdf_table");
-            table.title = QString("PDF表格 %1").arg(totalTables + 1);
+            table.id = generateUniqueId(QS("pdf_table"));
+            table.title = QString(QS("PDF表格 %1")).arg(totalTables + 1);
 
             // 改进的表格行分割
-            QStringList rows = tableContent.split('\n', Qt::SkipEmptyParts);
+            QStringList rows = tableContent.split(QS("\n"), Qt::SkipEmptyParts);
             if (rows.size() > 1) {
                 table.rows = rows.size();
                 table.columns = 1; // 默认列数
@@ -166,20 +165,20 @@ bool PdfTableExtractor::parsePdfFile(const QString& filePath, QList<TableInfo>& 
                 // 改进的列数检测（基于多种分隔符）
                 int maxCols = 1;
                 for (const QString& row : rows) {
-                    int colCount = qMax(qMax(qMax(row.count('\t') + 1, row.count('|') + 1), 
-                                             qMax(row.count(',') + 1, row.count(';') + 1)), 
-                                         row.count(' ') + 1);
+                    int colCount = qMax(qMax(qMax(row.count(QS("\t")) + 1, row.count(QS("|")) + 1),
+                                             qMax(row.count(QS(",")) + 1, row.count(QS(";")) + 1)),
+                                        row.count(QS(" ")) + 1);
                     maxCols = qMax(maxCols, colCount);
                 }
                 table.columns = qMin(maxCols, 10); // 限制最大列数
 
                 // 添加详细的表格属性
-                table.properties["source"] = "PDF";
-                table.properties["extractionMethod"] = "regex_advanced";
-                table.properties["rowCount"] = QString::number(table.rows);
-                table.properties["columnCount"] = QString::number(table.columns);
-                table.properties["pattern"] = pattern.pattern();
-                table.properties["fileSize"] = QString::number(pdfData.size());
+                table.properties[QS("source")] = QS("PDF");
+                table.properties[QS("extractionMethod")] = QS("regex_advanced");
+                table.properties[QS("rowCount")] = QString::number(table.rows);
+                table.properties[QS("columnCount")] = QString::number(table.columns);
+                table.properties[QS("pattern")] = pattern.pattern();
+                table.properties[QS("fileSize")] = QString::number(pdfData.size());
 
                 tables.append(table);
                 totalTables++;
@@ -187,38 +186,39 @@ bool PdfTableExtractor::parsePdfFile(const QString& filePath, QList<TableInfo>& 
         }
     }
 
-    qDebug() << "PdfTableExtractor: 通过改进的正则表达式找到" << totalTables << "个可能的表格";
+    qDebug() << QS("PdfTableExtractor: 通过改进的正则表达式找到") << totalTables
+             << QS("个可能的表格");
 
     // 如果没有找到表格，创建一个示例表格
     if (tables.isEmpty()) {
         TableInfo sampleTable;
-        sampleTable.id = generateUniqueId("pdf_sample_table");
-        sampleTable.title = "PDF示例表格";
+        sampleTable.id = generateUniqueId(QS("pdf_sample_table"));
+        sampleTable.title = QS("PDF示例表格");
         sampleTable.rows = 3;
         sampleTable.columns = 2;
 
         // 创建示例数据
         QList<CellInfo> row1;
-        row1.append(CellInfo(0, 0, "项目"));
-        row1.append(CellInfo(0, 1, "数值"));
+        row1.append(CellInfo(0, 0, QS("项目")));
+        row1.append(CellInfo(0, 1, QS("数值")));
         sampleTable.cells.append(row1);
 
         QList<CellInfo> row2;
-        row2.append(CellInfo(1, 0, "数据1"));
-        row2.append(CellInfo(1, 1, "100"));
+        row2.append(CellInfo(1, 0, QS("数据1")));
+        row2.append(CellInfo(1, 1, QS("100")));
         sampleTable.cells.append(row2);
 
         QList<CellInfo> row3;
-        row3.append(CellInfo(2, 0, "数据2"));
-        row3.append(CellInfo(2, 1, "200"));
+        row3.append(CellInfo(2, 0, QS("数据2")));
+        row3.append(CellInfo(2, 1, QS("200")));
         sampleTable.cells.append(row3);
 
-        sampleTable.properties["source"] = "PDF";
-        sampleTable.properties["extractionMethod"] = "sample";
-        sampleTable.properties["note"] = "实际实现需要PDF库支持";
+        sampleTable.properties[QS("source")] = QS("PDF");
+        sampleTable.properties[QS("extractionMethod")] = QS("sample");
+        sampleTable.properties[QS("note")] = QS("实际实现需要PDF库支持");
 
         tables.append(sampleTable);
-        qDebug() << "PdfTableExtractor: 添加了示例表格";
+        qDebug() << QS("PdfTableExtractor: 添加了示例表格");
     }
 
     return true;
@@ -233,7 +233,7 @@ bool PdfTableExtractor::extractTablesFromPage(const QByteArray& pageContent, int
 
     // 从页面中提取表格
     // 这里需要实现具体的提取逻辑
-    qDebug() << "PdfTableExtractor: 从页面提取表格";
+    qDebug() << QS("PdfTableExtractor: 从页面提取表格");
     return true;
 }
 
@@ -245,7 +245,7 @@ bool PdfTableExtractor::detectTableBoundaries(const QByteArray& pageContent,
 
     // 检测表格边界
     // 这里需要实现具体的检测逻辑
-    qDebug() << "PdfTableExtractor: 检测表格边界";
+    qDebug() << QS("PdfTableExtractor: 检测表格边界");
     return true;
 }
 
@@ -258,7 +258,7 @@ bool PdfTableExtractor::parseTableContent(const QByteArray& pageContent, const Q
 
     // 解析表格内容
     // 这里需要实现具体的解析逻辑
-    qDebug() << "PdfTableExtractor: 解析表格内容";
+    qDebug() << QS("PdfTableExtractor: 解析表格内容");
     return true;
 }
 
@@ -271,7 +271,7 @@ bool PdfTableExtractor::identifyTableCells(const QByteArray& pageContent, const 
 
     // 识别表格单元格
     // 这里需要实现具体的识别逻辑
-    qDebug() << "PdfTableExtractor: 识别表格单元格";
+    qDebug() << QS("PdfTableExtractor: 识别表格单元格");
     return true;
 }
 
@@ -284,7 +284,7 @@ bool PdfTableExtractor::getTablePosition(const QByteArray& pageContent, int tabl
 
     // 获取表格位置
     // 这里需要实现具体的解析逻辑
-    qDebug() << "PdfTableExtractor: 获取表格位置";
+    qDebug() << QS("PdfTableExtractor: 获取表格位置");
     return true;
 }
 
@@ -294,7 +294,7 @@ bool PdfTableExtractor::validateTableStructure(const TableInfo& table) const
 
     // 验证表格结构
     // 这里需要实现具体的验证逻辑
-    qDebug() << "PdfTableExtractor: 验证表格结构";
+    qDebug() << QS("PdfTableExtractor: 验证表格结构");
     return true;
 }
 
@@ -306,35 +306,35 @@ bool PdfTableExtractor::parsePdfWithPoppler(const QString& filePath, QList<Table
         if (!loadPopplerDocument(filePath)) {
             return false;
         }
-        
+
         if (!m_popplerDocument) {
-            setLastError("Poppler文档未加载");
+            setLastError(QS("Poppler文档未加载"));
             return false;
         }
-        
+
         // 遍历所有页面提取表格
         int pageCount = m_popplerDocument->numPages();
         for (int i = 0; i < pageCount; ++i) {
             QString pageText = extractTextFromPageWithPoppler(i);
             if (!pageText.isEmpty()) {
                 // 简单的表格检测（基于文本模式）
-                QStringList lines = pageText.split('\n', Qt::SkipEmptyParts);
+                QStringList lines = pageText.split(QS("\n"), Qt::SkipEmptyParts);
                 QStringList tableLines;
-                
+
                 for (const QString& line : lines) {
                     // 检测表格行（包含制表符或多个空格）
-                    if (line.contains('\t') || line.count(' ') > 3) {
+                    if (line.contains(QS("\t")) || line.count(QS(" ")) > 3) {
                         tableLines.append(line);
                     }
                 }
-                
+
                 if (tableLines.size() > 1) {
                     TableInfo table;
-                    table.id = generateUniqueId("poppler_table");
-                    table.title = QString("PDF表格 %1").arg(tables.size() + 1);
+                    table.id = generateUniqueId(QS("poppler_table"));
+                    table.title = QS("PDF表格 %1").arg(tables.size() + 1);
                     table.rows = tableLines.size();
                     table.columns = 1;
-                    
+
                     // 创建单元格数据
                     for (int j = 0; j < tableLines.size(); ++j) {
                         QList<CellInfo> row;
@@ -342,22 +342,22 @@ bool PdfTableExtractor::parsePdfWithPoppler(const QString& filePath, QList<Table
                         row.append(cell);
                         table.cells.append(row);
                     }
-                    
+
                     // 添加表格属性
-                    table.properties["source"] = "PDF_Poppler";
-                    table.properties["pageNumber"] = QString::number(i + 1);
-                    table.properties["extractionMethod"] = "poppler_text";
-                    
+                    table.properties[QS("source")] = QS("PDF_Poppler");
+                    table.properties[QS("pageNumber")] = QString::number(i + 1);
+                    table.properties[QS("extractionMethod")] = QS("poppler_text");
+
                     tables.append(table);
                 }
             }
         }
-        
-        qDebug() << "PdfTableExtractor: Poppler提取了" << tables.size() << "个表格";
+
+        qDebug() << QS("PdfTableExtractor: Poppler提取了") << tables.size() << QS("个表格");
         return true;
-        
+
     } catch (const std::exception& e) {
-        setLastError(QString("Poppler解析PDF时发生异常: %1").arg(e.what()));
+        setLastError(QS("Poppler解析PDF时发生异常: %1").arg(QString::fromUtf8(e.what())));
         return false;
     }
 }
@@ -367,20 +367,23 @@ QString PdfTableExtractor::extractTextFromPageWithPoppler(int pageNumber) const
     if (!m_popplerDocument) {
         return QString();
     }
-    
+
     try {
-        // 获取页面（Qt版本，使用unique_ptr）
-        std::unique_ptr<Poppler::Page> page = m_popplerDocument->page(pageNumber);
+        // 获取页面（Qt版本）
+        Poppler::Page* page = m_popplerDocument->page(pageNumber);
         if (!page) {
             return QString();
         }
-        
+
         // 提取文本（Qt版本）
-        QString text = page->text(QRectF());
+        QString text = page->text(QRect());
         
+        // 清理页面对象
+        delete page;
+
         return text;
     } catch (const std::exception& e) {
-        qDebug() << "PdfTableExtractor: 提取文本时发生异常:" << e.what();
+        qDebug() << QS("PdfTableExtractor: 提取文本时发生异常:") << e.what();
         return QString();
     }
 }
@@ -390,26 +393,26 @@ bool PdfTableExtractor::loadPopplerDocument(const QString& filePath)
     try {
         // 关闭之前的文档
         closePopplerDocument();
-        
+
         // 加载PDF文档（Qt版本，使用unique_ptr）
         m_popplerDocument = Poppler::Document::load(filePath);
         if (!m_popplerDocument) {
-            setLastError("无法加载PDF文档");
+            setLastError(QS("无法加载PDF文档"));
             return false;
         }
-        
+
         if (m_popplerDocument->isLocked()) {
-            setLastError("PDF文档已加密");
+            setLastError(QS("PDF文档已加密"));
             m_popplerDocument.reset();
             return false;
         }
-        
+
         m_currentPdfPath = filePath;
-        qDebug() << "PdfTableExtractor: Poppler成功加载文档" << filePath;
+        qDebug() << QS("PdfTableExtractor: Poppler成功加载文档") << filePath;
         return true;
-        
+
     } catch (const std::exception& e) {
-        setLastError(QString("加载Poppler文档时发生异常: %1").arg(e.what()));
+        setLastError(QS("加载Poppler文档时发生异常: %1").arg(QString::fromUtf8(e.what())));
         return false;
     }
 }
@@ -419,6 +422,6 @@ void PdfTableExtractor::closePopplerDocument()
     if (m_popplerDocument) {
         m_popplerDocument.reset();
         m_currentPdfPath.clear();
-        qDebug() << "PdfTableExtractor: 关闭Poppler文档";
+        qDebug() << QS("PdfTableExtractor: 关闭Poppler文档");
     }
 }

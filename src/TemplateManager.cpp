@@ -1,3 +1,4 @@
+#include "QtCompat.h"
 #include "DocToXmlConverter.h"
 #include "PdfToXmlConverter.h"
 #include <QStandardPaths>
@@ -18,7 +19,7 @@ TemplateManager::TemplateManager(QObject* parent) : QObject(parent), m_initializ
 {
     // 设置默认存储根目录
     QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    m_storageRoot = QDir(appDataPath).absoluteFilePath("templates");
+    m_storageRoot = QDir(appDataPath).absoluteFilePath(QS("templates"));
 }
 
 TemplateManager::~TemplateManager() { shutdown(); }
@@ -33,23 +34,23 @@ bool TemplateManager::initialize(const QString& dbPath)
     if (dbPath.isEmpty()) {
         QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
         QDir().mkpath(appDataPath);
-        m_databasePath = QDir(appDataPath).absoluteFilePath("templates.db");
+        m_databasePath = QDir(appDataPath).absoluteFilePath(QS("templates.db"));
     } else {
         m_databasePath = dbPath;
     }
 
     // 初始化数据库
-    m_database = QSqlDatabase::addDatabase("QSQLITE", "TemplateManager");
+    m_database = QSqlDatabase::addDatabase(QS("QSQLITE"), QS("TemplateManager"));
     m_database.setDatabaseName(m_databasePath);
 
     if (!m_database.open()) {
-        qDebug() << "无法打开数据库:" << m_database.lastError().text();
+        qDebug() << QS("无法打开数据库:") << m_database.lastError().text();
         return false;
     }
 
     // 创建表结构
     if (!createTables()) {
-        qDebug() << "创建数据库表失败";
+        qDebug() << QS("创建数据库表失败");
         return false;
     }
 
@@ -60,7 +61,7 @@ bool TemplateManager::initialize(const QString& dbPath)
     QDir().mkpath(m_storageRoot);
 
     m_initialized = true;
-    qDebug() << "模板管理器初始化成功";
+    qDebug() << QS("模板管理器初始化成功");
     return true;
 }
 
@@ -94,21 +95,21 @@ int TemplateManager::importTemplate(const QString& filePath, const QString& temp
 
     // 检查是否已存在相同哈希的模板
     QSqlQuery query(m_database);
-    query.prepare("SELECT id FROM templates WHERE file_hash = ?");
+    query.prepare(QtCompat::SQL_SELECT_BY_HASH);
     query.addBindValue(fileHash);
     if (query.exec() && query.next()) {
         int existingId = query.value(0).toInt();
-        emit templateImported(existingId, false, "相同内容的模板已存在");
+        emit templateImported(existingId, false, QtCompat::TEMPLATE_EXISTS);
         return existingId;
     }
 
     // 插入模板记录
-    query.prepare(R"(
+    query.prepare(QS(R"(
         INSERT INTO templates (name, description, file_path, file_hash, format, 
                               field_mapping, extraction_rules, created_at, updated_at, 
                               is_active, tags)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    )");
+    )"));
 
     query.addBindValue(fileName);
     query.addBindValue(description);
@@ -125,11 +126,11 @@ int TemplateManager::importTemplate(const QString& filePath, const QString& temp
     query.addBindValue(QDateTime::currentDateTime());
     query.addBindValue(QDateTime::currentDateTime());
     query.addBindValue(true);
-    query.addBindValue(tags.join(","));
+    query.addBindValue(tags.join(QS(",")));
 
     if (!query.exec()) {
-        qDebug() << "插入模板记录失败:" << query.lastError().text();
-        emit templateImported(-1, false, "数据库操作失败");
+        qDebug() << QS("插入模板记录失败:") << query.lastError().text();
+        emit templateImported(-1, false, QS("数据库操作失败"));
         return -1;
     }
 
@@ -140,17 +141,17 @@ int TemplateManager::importTemplate(const QString& filePath, const QString& temp
     if (storedFilePath.isEmpty()) {
         // 如果复制失败，删除数据库记录
         deleteTemplate(templateId);
-        emit templateImported(-1, false, "复制模板文件失败");
+        emit templateImported(-1, false, QS("复制模板文件失败"));
         return -1;
     }
 
     // 更新数据库中的文件路径
-    query.prepare("UPDATE templates SET file_path = ? WHERE id = ?");
+    query.prepare(QS("UPDATE templates SET file_path = ? WHERE id = ?"));
     query.addBindValue(storedFilePath);
     query.addBindValue(templateId);
     query.exec();
 
-    emit templateImported(templateId, true, "模板导入成功");
+    emit templateImported(templateId, true, QS("模板导入成功"));
     return templateId;
 }
 
@@ -179,7 +180,7 @@ bool TemplateManager::deleteTemplate(int templateId)
 
     // 删除数据库记录
     QSqlQuery query(m_database);
-    query.prepare("DELETE FROM templates WHERE id = ?");
+    query.prepare(QS("DELETE FROM templates WHERE id = ?"));
     query.addBindValue(templateId);
 
     bool success = query.exec();
@@ -197,12 +198,12 @@ bool TemplateManager::updateTemplate(const TemplateInfo& templateInfo)
     }
 
     QSqlQuery query(m_database);
-    query.prepare(R"(
+    query.prepare(QS(R"(
         UPDATE templates SET 
             name = ?, description = ?, field_mapping = ?, extraction_rules = ?,
             updated_at = ?, is_active = ?, tags = ?
         WHERE id = ?
-    )");
+    )"));
 
     query.addBindValue(templateInfo.name);
     query.addBindValue(templateInfo.description);
@@ -230,7 +231,7 @@ TemplateInfo TemplateManager::getTemplate(int templateId) const
     }
 
     QSqlQuery query(m_database);
-    query.prepare("SELECT * FROM templates WHERE id = ?");
+    query.prepare(QS("SELECT * FROM templates WHERE id = ?"));
     query.addBindValue(templateId);
 
     if (query.exec() && query.next()) {
@@ -273,11 +274,11 @@ QList<TemplateInfo> TemplateManager::getAllTemplates(bool activeOnly) const
         return templates;
     }
 
-    QString sql = "SELECT * FROM templates";
+    QString sql = QS("SELECT * FROM templates");
     if (activeOnly) {
-        sql += " WHERE is_active = 1";
+        sql += QS(" WHERE is_active = 1");
     }
-    sql += " ORDER BY created_at DESC";
+    sql += QS(" ORDER BY created_at DESC");
 
     QSqlQuery query(m_database);
     query.exec(sql);
@@ -327,8 +328,8 @@ QList<TemplateInfo> TemplateManager::searchTemplates(const QString& name) const
 
     QSqlQuery query(m_database);
     query.prepare(
-        "SELECT * FROM templates WHERE name LIKE ? AND is_active = 1 ORDER BY created_at DESC");
-    query.addBindValue(QString("%%1%").arg(name));
+        QS("SELECT * FROM templates WHERE name LIKE ? AND is_active = 1 ORDER BY created_at DESC"));
+    query.addBindValue(QString(QS("%%1%")).arg(name));
 
     if (query.exec()) {
         while (query.next()) {
@@ -363,8 +364,8 @@ QList<TemplateInfo> TemplateManager::searchTemplatesByTag(const QString& tag) co
 
     QSqlQuery query(m_database);
     query.prepare(
-        "SELECT * FROM templates WHERE tags LIKE ? AND is_active = 1 ORDER BY created_at DESC");
-    query.addBindValue(QString("%%1%").arg(tag));
+        QS("SELECT * FROM templates WHERE tags LIKE ? AND is_active = 1 ORDER BY created_at DESC"));
+    query.addBindValue(QString(QS("%%1%")).arg(tag));
 
     if (query.exec()) {
         while (query.next()) {
@@ -396,7 +397,7 @@ bool TemplateManager::setTemplateFieldMapping(int templateId, const QJsonObject&
     }
 
     QSqlQuery query(m_database);
-    query.prepare("UPDATE templates SET field_mapping = ?, updated_at = ? WHERE id = ?");
+    query.prepare(QS("UPDATE templates SET field_mapping = ?, updated_at = ? WHERE id = ?"));
     query.addBindValue(QJsonDocument(fieldMapping).toJson(QJsonDocument::Compact));
     query.addBindValue(QDateTime::currentDateTime());
     query.addBindValue(templateId);
@@ -413,7 +414,7 @@ QJsonObject TemplateManager::getTemplateFieldMapping(int templateId) const
     }
 
     QSqlQuery query(m_database);
-    query.prepare("SELECT field_mapping FROM templates WHERE id = ?");
+    query.prepare(QS("SELECT field_mapping FROM templates WHERE id = ?"));
     query.addBindValue(templateId);
 
     if (query.exec() && query.next()) {
@@ -434,7 +435,7 @@ bool TemplateManager::setTemplateExtractionRules(int templateId, const QJsonObje
     }
 
     QSqlQuery query(m_database);
-    query.prepare("UPDATE templates SET extraction_rules = ?, updated_at = ? WHERE id = ?");
+    query.prepare(QS("UPDATE templates SET extraction_rules = ?, updated_at = ? WHERE id = ?"));
     query.addBindValue(QJsonDocument(extractionRules).toJson(QJsonDocument::Compact));
     query.addBindValue(QDateTime::currentDateTime());
     query.addBindValue(templateId);
@@ -451,7 +452,7 @@ QJsonObject TemplateManager::getTemplateExtractionRules(int templateId) const
     }
 
     QSqlQuery query(m_database);
-    query.prepare("SELECT extraction_rules FROM templates WHERE id = ?");
+    query.prepare(QS("SELECT extraction_rules FROM templates WHERE id = ?"));
     query.addBindValue(templateId);
 
     if (query.exec() && query.next()) {
@@ -471,39 +472,40 @@ QPair<bool, QString> TemplateManager::validateTemplate(const QString& filePath)
 
     // 检查文件是否存在
     if (!fileInfo.exists()) {
-        return qMakePair(false, "文件不存在");
+        return qMakePair(false, QtCompat::FILE_NOT_FOUND);
     }
 
     // 检查文件是否可读
     if (!fileInfo.isReadable()) {
-        return qMakePair(false, "文件不可读");
+        return qMakePair(false, QtCompat::FILE_NOT_READABLE);
     }
 
     // 检查文件大小
     if (fileInfo.size() == 0) {
-        return qMakePair(false, "文件为空");
+        return qMakePair(false, QtCompat::FILE_EMPTY);
     }
 
     // 检查文件格式
     FileConverter::InputFormat format = getFileFormat(filePath);
     if (format == FileConverter::InputFormat::UNKNOWN) {
-        return qMakePair(false, "不支持的文件格式");
+        return qMakePair(false, QtCompat::FILE_UNSUPPORTED);
     }
 
     // 检查是否有对应的转换器
     QSharedPointer<FileConverter> converter = getConverter(filePath);
     if (!converter) {
-        return qMakePair(false, "无法处理此文件格式");
+        return qMakePair(false, QtCompat::FILE_PROCESS_ERROR);
     }
 
     // 尝试提取字段以验证文件完整性
     QMap<QString, FileConverter::FieldInfo> fields;
     FileConverter::ConvertStatus status = converter->extractFields(filePath, fields);
     if (status != FileConverter::ConvertStatus::SUCCESS) {
-        return qMakePair(false, QString("文件解析失败: %1").arg(converter->getLastError()));
+        return qMakePair(
+            false, QtCompat::formatError(QtCompat::FILE_PARSE_ERROR, converter->getLastError()));
     }
 
-    return qMakePair(true, "验证通过");
+    return qMakePair(true, QtCompat::VALIDATION_SUCCESS);
 }
 
 bool TemplateManager::extractFieldsFromTemplate(int templateId,
@@ -532,14 +534,14 @@ QStringList TemplateManager::getAllTags() const
     }
 
     QSqlQuery query(m_database);
-    query.exec(
+    query.exec(QS(
         "SELECT DISTINCT tags FROM templates WHERE is_active = 1 AND tags IS NOT NULL AND tags != "
-        "''");
+        "''"));
 
     while (query.next()) {
         QString tagString = query.value(0).toString();
         if (!tagString.isEmpty()) {
-            QStringList templateTags = tagString.split(',', Qt::SkipEmptyParts);
+            QStringList templateTags = tagString.split(QS(","), Qt::SkipEmptyParts);
             for (const QString& tag : templateTags) {
                 QString trimmedTag = tag.trimmed();
                 if (!trimmedTag.isEmpty() && !tags.contains(trimmedTag)) {
@@ -564,25 +566,25 @@ QJsonObject TemplateManager::getTemplateStatistics() const
     QSqlQuery query(m_database);
 
     // 总模板数
-    query.exec("SELECT COUNT(*) FROM templates WHERE is_active = 1");
+    query.exec(QS("SELECT COUNT(*) FROM templates WHERE is_active = 1"));
     if (query.next()) {
-        stats["totalTemplates"] = query.value(0).toInt();
+        stats[QS("totalTemplates")] = query.value(0).toInt();
     }
 
     // 按格式统计
-    query.exec("SELECT format, COUNT(*) FROM templates WHERE is_active = 1 GROUP BY format");
+    query.exec(QS("SELECT format, COUNT(*) FROM templates WHERE is_active = 1 GROUP BY format"));
     QJsonObject formatStats;
     while (query.next()) {
         formatStats[query.value(0).toString()] = query.value(1).toInt();
     }
-    stats["formatStatistics"] = formatStats;
+    stats[QS("formatStatistics")] = formatStats;
 
     // 最近创建的模板数
-    query.exec(
+    query.exec(QS(
         "SELECT COUNT(*) FROM templates WHERE is_active = 1 AND created_at >= datetime('now', '-7 "
-        "days')");
+        "days')"));
     if (query.next()) {
-        stats["recentTemplates"] = query.value(0).toInt();
+        stats[QS("recentTemplates")] = query.value(0).toInt();
     }
 
     return stats;
@@ -596,15 +598,15 @@ bool TemplateManager::exportTemplateConfig(int templateId, const QString& export
     }
 
     QJsonObject config;
-    config["version"] = "1.0";
-    config["templateInfo"] = QJsonObject{{"id", info.id},
-                                         {"name", info.name},
-                                         {"description", info.description},
-                                         {"format", info.format},
-                                         {"tags", info.tags}};
-    config["fieldMapping"] = info.fieldMapping;
-    config["extractionRules"] = info.extractionRules;
-    config["exportedAt"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+    config[QS("version")] = QS("1.0");
+    config[QS("templateInfo")] = QJsonObject{{QS("id"), info.id},
+                                             {QS("name"), info.name},
+                                             {QS("description"), info.description},
+                                             {QS("format"), info.format},
+                                             {QS("tags"), info.tags}};
+    config[QS("fieldMapping")] = info.fieldMapping;
+    config[QS("extractionRules")] = info.extractionRules;
+    config[QS("exportedAt")] = QDateTime::currentDateTime().toString(Qt::ISODate);
 
     QJsonDocument doc(config);
     QFile file(exportPath);
@@ -630,27 +632,27 @@ int TemplateManager::importTemplateConfig(const QString& configPath)
     }
 
     QJsonObject config = doc.object();
-    QJsonObject templateInfo = config["templateInfo"].toObject();
+    QJsonObject templateInfo = config[QS("templateInfo")].toObject();
 
     // 创建新的模板记录
     QSqlQuery query(m_database);
-    query.prepare(R"(
+    query.prepare(QS(R"(
         INSERT INTO templates (name, description, format, field_mapping, extraction_rules, 
                               created_at, updated_at, is_active, tags)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    )");
+    )"));
 
-    query.addBindValue(templateInfo["name"].toString());
-    query.addBindValue(templateInfo["description"].toString());
-    query.addBindValue(templateInfo["format"].toString());
+    query.addBindValue(templateInfo[QS("name")].toString());
+    query.addBindValue(templateInfo[QS("description")].toString());
+    query.addBindValue(templateInfo[QS("format")].toString());
     query.addBindValue(
-        QJsonDocument(config["fieldMapping"].toObject()).toJson(QJsonDocument::Compact));
+        QJsonDocument(config[QS("fieldMapping")].toObject()).toJson(QJsonDocument::Compact));
     query.addBindValue(
-        QJsonDocument(config["extractionRules"].toObject()).toJson(QJsonDocument::Compact));
+        QJsonDocument(config[QS("extractionRules")].toObject()).toJson(QJsonDocument::Compact));
     query.addBindValue(QDateTime::currentDateTime());
     query.addBindValue(QDateTime::currentDateTime());
     query.addBindValue(true);
-    query.addBindValue(templateInfo["tags"].toString());
+    query.addBindValue(templateInfo[QS("tags")].toString());
 
     if (!query.exec()) {
         return -1;
@@ -661,7 +663,7 @@ int TemplateManager::importTemplateConfig(const QString& configPath)
 
 bool TemplateManager::createTables()
 {
-    QString createTableSql = R"(
+    QString createTableSql = QS(R"(
         CREATE TABLE IF NOT EXISTS templates (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -676,7 +678,7 @@ bool TemplateManager::createTables()
             is_active BOOLEAN DEFAULT 1,
             tags TEXT
         )
-    )";
+    )");
 
     QSqlQuery query(m_database);
     return query.exec(createTableSql);
@@ -692,7 +694,7 @@ QString TemplateManager::calculateFileHash(const QString& filePath) const
     QCryptographicHash hash(QCryptographicHash::Sha256);
     hash.addData(&file);
 
-    return hash.result().toHex();
+    return QString::fromUtf8(hash.result().toHex());
 }
 
 QString TemplateManager::copyTemplateFile(const QString& sourcePath, int templateId)
@@ -726,7 +728,7 @@ bool TemplateManager::validateFieldMapping(const QJsonObject& fieldMapping) cons
         }
 
         QJsonObject fieldConfig = it.value().toObject();
-        if (!fieldConfig.contains("type") || !fieldConfig.contains("required")) {
+        if (!fieldConfig.contains(QS("type")) || !fieldConfig.contains(QS("required"))) {
             return false;
         }
     }
@@ -737,14 +739,14 @@ bool TemplateManager::validateFieldMapping(const QJsonObject& fieldMapping) cons
 bool TemplateManager::validateExtractionRules(const QJsonObject& extractionRules) const
 {
     // 基本验证：检查抽取规则格式
-    if (extractionRules.contains("patterns")) {
-        if (!extractionRules["patterns"].isObject()) {
+    if (extractionRules.contains(QS("patterns"))) {
+        if (!extractionRules[QS("patterns")].isObject()) {
             return false;
         }
     }
 
-    if (extractionRules.contains("keywords")) {
-        if (!extractionRules["keywords"].isArray()) {
+    if (extractionRules.contains(QS("keywords"))) {
+        if (!extractionRules[QS("keywords")].isArray()) {
             return false;
         }
     }

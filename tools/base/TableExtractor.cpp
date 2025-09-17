@@ -8,6 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
+#include "QtCompat.h"
 #include "TableExtractor.h"
 #include <QFile>
 #include <QTextStream>
@@ -24,7 +25,7 @@ bool TableExtractor::exportToCsv(const TableInfo& table, const QString& outputPa
 {
     QFile file(outputPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        setLastError(QString("无法创建CSV文件: %1").arg(outputPath));
+        setLastError(QString(QS("无法创建CSV文件: %1")).arg(outputPath));
         return false;
     }
 
@@ -40,7 +41,7 @@ bool TableExtractor::exportToCsv(const TableInfo& table, const QString& outputPa
             }
             rowData << content;
         }
-        stream << rowData.join(",") << "\n";
+        stream << rowData.join(QS(",")) << QS("\n");
     }
 
     file.close();
@@ -51,31 +52,31 @@ bool TableExtractor::exportToHtml(const TableInfo& table, const QString& outputP
 {
     QFile file(outputPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        setLastError(QString("无法创建HTML文件: %1").arg(outputPath));
+        setLastError(QString(QS("无法创建HTML文件: %1")).arg(outputPath));
         return false;
     }
 
     QTextStream stream(&file);
     stream.setEncoding(QStringConverter::Utf8);
 
-    stream << "<!DOCTYPE html>\n";
-    stream << "<html><head><meta charset=\"UTF-8\"></head><body>\n";
-    stream << "<table border=\"1\">\n";
+    stream << QS("<!DOCTYPE html>\n");
+    stream << QS("<html><head><meta charset=\"UTF-8\"></head><body>\n");
+    stream << QS("<table border=\"1\">\n");
 
     for (int row = 0; row < table.rows; ++row) {
-        stream << "  <tr>\n";
+        stream << QS("  <tr>\n");
         for (int col = 0; col < table.columns; ++col) {
             QString content;
             if (row < table.cells.size() && col < table.cells[row].size()) {
                 content = table.cells[row][col].content;
             }
-            stream << "    <td>" << content << "</td>\n";
+            stream << QS("    <td>") << content << QS("</td>\n");
         }
-        stream << "  </tr>\n";
+        stream << QS("  </tr>\n");
     }
 
-    stream << "</table>\n";
-    stream << "</body></html>\n";
+    stream << QS("</table>\n");
+    stream << QS("</body></html>\n");
 
     file.close();
     return true;
@@ -87,7 +88,7 @@ bool TableExtractor::exportToJson(const TableInfo& table, const QString& outputP
 
     QFile file(outputPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        setLastError(QString("无法创建JSON文件: %1").arg(outputPath));
+        setLastError(QString(QS("无法创建JSON文件: %1")).arg(outputPath));
         return false;
     }
 
@@ -101,12 +102,12 @@ bool TableExtractor::exportToJson(const TableInfo& table, const QString& outputP
 QJsonObject TableExtractor::tableToJson(const TableInfo& table) const
 {
     QJsonObject json;
-    json["id"] = table.id;
-    json["rows"] = table.rows;
-    json["columns"] = table.columns;
-    json["title"] = table.title;
-    json["caption"] = table.caption;
-    json["properties"] = table.properties;
+    json[QS("id")] = table.id;
+    json[QS("rows")] = table.rows;
+    json[QS("columns")] = table.columns;
+    json[QS("title")] = table.title;
+    json[QS("caption")] = table.caption;
+    json[QS("properties")] = table.properties;
 
     QJsonArray cellsArray;
     for (int row = 0; row < table.rows; ++row) {
@@ -115,18 +116,18 @@ QJsonObject TableExtractor::tableToJson(const TableInfo& table) const
             QJsonObject cellObj;
             if (row < table.cells.size() && col < table.cells[row].size()) {
                 const CellInfo& cell = table.cells[row][col];
-                cellObj["row"] = cell.row;
-                cellObj["column"] = cell.column;
-                cellObj["content"] = cell.content;
-                cellObj["rowSpan"] = cell.rowSpan;
-                cellObj["colSpan"] = cell.colSpan;
-                cellObj["properties"] = cell.properties;
+                cellObj[QS("row")] = cell.row;
+                cellObj[QS("column")] = cell.column;
+                cellObj[QS("content")] = cell.content;
+                cellObj[QS("rowSpan")] = cell.rowSpan;
+                cellObj[QS("colSpan")] = cell.colSpan;
+                cellObj[QS("properties")] = cell.properties;
             }
             rowArray.append(cellObj);
         }
         cellsArray.append(rowArray);
     }
-    json["cells"] = cellsArray;
+    json[QS("cells")] = cellsArray;
 
     return json;
 }
@@ -134,30 +135,30 @@ QJsonObject TableExtractor::tableToJson(const TableInfo& table) const
 TableInfo TableExtractor::tableFromJson(const QJsonObject& json) const
 {
     TableInfo table;
-    table.id = json["id"].toString();
-    table.rows = json["rows"].toInt();
-    table.columns = json["columns"].toInt();
-    table.title = json["title"].toString();
-    table.caption = json["caption"].toString();
-    table.properties = json["properties"].toObject();
+    table.id = json[QS("id")].toString();
+    table.rows = json[QS("rows")].toInt();
+    table.columns = json[QS("columns")].toInt();
+    table.title = json[QS("title")].toString();
+    table.caption = json[QS("caption")].toString();
+    table.properties = json[QS("properties")].toObject();
 
     table.cells.resize(table.rows);
     for (int i = 0; i < table.rows; ++i) {
         table.cells[i].resize(table.columns);
     }
 
-    QJsonArray cellsArray = json["cells"].toArray();
+    QJsonArray cellsArray = json[QS("cells")].toArray();
     for (int row = 0; row < cellsArray.size() && row < table.rows; ++row) {
         QJsonArray rowArray = cellsArray[row].toArray();
         for (int col = 0; col < rowArray.size() && col < table.columns; ++col) {
             QJsonObject cellObj = rowArray[col].toObject();
             CellInfo& cell = table.cells[row][col];
-            cell.row = cellObj["row"].toInt();
-            cell.column = cellObj["column"].toInt();
-            cell.content = cellObj["content"].toString();
-            cell.rowSpan = cellObj["rowSpan"].toInt();
-            cell.colSpan = cellObj["colSpan"].toInt();
-            cell.properties = cellObj["properties"].toObject();
+            cell.row = cellObj[QS("row")].toInt();
+            cell.column = cellObj[QS("column")].toInt();
+            cell.content = cellObj[QS("content")].toString();
+            cell.rowSpan = cellObj[QS("rowSpan")].toInt();
+            cell.colSpan = cellObj[QS("colSpan")].toInt();
+            cell.properties = cellObj[QS("properties")].toObject();
         }
     }
 
@@ -167,16 +168,16 @@ TableInfo TableExtractor::tableFromJson(const QJsonObject& json) const
 QString TableExtractor::validateTable(const TableInfo& table) const
 {
     if (table.rows <= 0 || table.columns <= 0) {
-        return "表格行数或列数无效";
+        return QS("表格行数或列数无效");
     }
 
     if (table.cells.size() != table.rows) {
-        return "表格行数与单元格数据不匹配";
+        return QS("表格行数与单元格数据不匹配");
     }
 
     for (int row = 0; row < table.rows; ++row) {
         if (table.cells[row].size() != table.columns) {
-            return QString("第%1行列数与表格列数不匹配").arg(row + 1);
+            return QS("第%1行列数与表格列数不匹配").arg(row + 1);
         }
     }
 
@@ -187,16 +188,16 @@ bool TableExtractor::processTableData(const QJsonObject& rawData, TableInfo& tab
 {
     // 基本实现，子类可以重写
     tableInfo.id = generateTableId();
-    tableInfo.rows = rawData["rows"].toInt();
-    tableInfo.columns = rawData["columns"].toInt();
-    tableInfo.title = rawData["title"].toString();
-    tableInfo.caption = rawData["caption"].toString();
-    tableInfo.properties = rawData["properties"].toObject();
+    tableInfo.rows = rawData[QS("rows")].toInt();
+    tableInfo.columns = rawData[QS("columns")].toInt();
+    tableInfo.title = rawData[QS("title")].toString();
+    tableInfo.caption = rawData[QS("caption")].toString();
+    tableInfo.properties = rawData[QS("properties")].toObject();
 
     return true;
 }
 
-QString TableExtractor::generateTableId() { return generateUniqueId("table"); }
+QString TableExtractor::generateTableId() { return generateUniqueId(QS("table")); }
 
 QString TableExtractor::cleanCellContent(const QString& content) const
 {
@@ -229,11 +230,11 @@ QString TableExtractor::escapeCsvContent(const QString& content) const
     QString escaped = content;
 
     // 如果内容包含逗号、引号或换行符，需要用引号包围
-    if (escaped.contains(',') || escaped.contains('"') || escaped.contains('\n')) {
+    if (escaped.contains(QS(",")) || escaped.contains(QS("\"")) || escaped.contains(QS("\n"))) {
         // 转义引号
-        escaped.replace('"', "\"\"");
+        escaped.replace(QS("\""), QS("\"\""));
         // 用引号包围
-        escaped = '"' + escaped + '"';
+        escaped = QS("\"") + escaped + QS("\"");
     }
 
     return escaped;
@@ -243,7 +244,7 @@ bool TableExtractor::exportToXml(const TableInfo& table, const QString& outputPa
 {
     QFile file(outputPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        setLastError(QString("无法创建XML文件: %1").arg(outputPath));
+        setLastError(QS("无法创建XML文件: %1").arg(outputPath));
         return false;
     }
 
@@ -265,20 +266,20 @@ bool TableExtractor::exportToXml(const TableInfo& table, const QString& outputPa
     for (int row = 0; row < table.rows; ++row) {
         writer.writeStartElement("Row");
         writer.writeAttribute("index", QString::number(row));
-        
+
         for (int col = 0; col < table.columns; ++col) {
             writer.writeStartElement("Cell");
             writer.writeAttribute("row", QString::number(row));
             writer.writeAttribute("column", QString::number(col));
-            
+
             if (row < table.cells.size() && col < table.cells[row].size()) {
                 const CellInfo& cell = table.cells[row][col];
                 writer.writeCharacters(cell.content);
             }
-            
+
             writer.writeEndElement(); // Cell
         }
-        
+
         writer.writeEndElement(); // Row
     }
     writer.writeEndElement(); // Data
@@ -306,7 +307,7 @@ bool TableExtractor::exportToXml(const QList<TableInfo>& tables, const QString& 
 {
     QFile file(outputPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        setLastError(QString("无法创建XML文件: %1").arg(outputPath));
+        setLastError(QS("无法创建XML文件: %1").arg(outputPath));
         return false;
     }
 
@@ -333,20 +334,20 @@ bool TableExtractor::exportToXml(const QList<TableInfo>& tables, const QString& 
         for (int row = 0; row < table.rows; ++row) {
             writer.writeStartElement("Row");
             writer.writeAttribute("index", QString::number(row));
-            
+
             for (int col = 0; col < table.columns; ++col) {
                 writer.writeStartElement("Cell");
                 writer.writeAttribute("row", QString::number(row));
                 writer.writeAttribute("column", QString::number(col));
-                
+
                 if (row < table.cells.size() && col < table.cells[row].size()) {
                     const CellInfo& cell = table.cells[row][col];
                     writer.writeCharacters(cell.content);
                 }
-                
+
                 writer.writeEndElement(); // Cell
             }
-            
+
             writer.writeEndElement(); // Row
         }
         writer.writeEndElement(); // Data
