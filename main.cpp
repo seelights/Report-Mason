@@ -1,4 +1,13 @@
 /*
+ * @Author: seelights
+ * @Date: 2025-09-14 19:52:21
+ * @LastEditTime: 2025-09-17 18:18:56
+ * @LastEditors: seelights
+ * @Description:
+ * @FilePath: \ReportMason\main.cpp
+ * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
+ */
+/*
  * main.cpp
  * ReportMason 主程序
  *
@@ -19,6 +28,7 @@
 #include "src/TestWidget.h"
 #include "src/DocxContentTestWidget.h"
 #include "src/PdfContentTestWidget.h"
+#include "src/AiTestWidget.h" // 暂时注释掉AI模块
 
 int main(int argc, char* argv[])
 {
@@ -57,6 +67,9 @@ int main(int argc, char* argv[])
     // 添加PDF内容提取测试标签页
     PdfContentTestWidget* pdfTestWidget = new PdfContentTestWidget();
     tabWidget->addTab(pdfTestWidget, QStringLiteral("PDF内容提取"));
+    // 添加AI功能测试标签页
+    AiTestWidget* aiTestWidget = new AiTestWidget();
+    tabWidget->addTab(aiTestWidget, QStringLiteral("AI功能测试"));
 
     // 设置布局
     QVBoxLayout* layout = new QVBoxLayout(&mainWindow);

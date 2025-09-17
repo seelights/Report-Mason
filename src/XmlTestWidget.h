@@ -1,5 +1,4 @@
-#ifndef XMLTESTWIDGET_H
-#define XMLTESTWIDGET_H
+#pragma once
 
 #include <QWidget>
 #include <QVBoxLayout>
@@ -89,4 +88,3 @@ private:
     QString m_currentFilePath;
 };
 
-#endif // XMLTESTWIDGET_H

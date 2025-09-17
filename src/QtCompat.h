@@ -1,5 +1,4 @@
-#ifndef QTCMPAT_H
-#define QTCMPAT_H
+#pragma once
 
 #include <QString>
 #include <QStringLiteral>
@@ -168,4 +167,3 @@ namespace QtCompat {
 #define QS_WARNING(msg) QtCompat::formatMessage(QtCompat::WARNING, msg)
 #define QS_INFO(msg) QtCompat::formatMessage(QtCompat::INFO, msg)
 
-#endif // QTCMPAT_H

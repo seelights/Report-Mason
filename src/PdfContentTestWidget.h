@@ -8,8 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef PDFCONTENTTESTWIDGET_H
-#define PDFCONTENTTESTWIDGET_H
+#pragma once
 
 #include <QWidget>
 #include <QVBoxLayout>
@@ -130,4 +129,3 @@ private:
     QList<ChartInfo> m_currentCharts;
 };
 
-#endif // PDFCONTENTTESTWIDGET_H

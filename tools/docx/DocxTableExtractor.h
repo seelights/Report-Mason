@@ -8,8 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef DOCXTABLEEXTRACTOR_H
-#define DOCXTABLEEXTRACTOR_H
+#pragma once
 
 #include "../base/TableExtractor.h"
 #include "../../src/KZipUtils.h"
@@ -129,4 +128,3 @@ private:
     static const QString DOCX_DOCUMENT_PATH;
 };
 
-#endif // DOCXTABLEEXTRACTOR_H

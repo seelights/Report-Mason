@@ -8,8 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef TABLEEXTRACTOR_H
-#define TABLEEXTRACTOR_H
+#pragma once
 
 #include "ContentExtractor.h"
 #include <QSize>
@@ -200,4 +199,3 @@ private:
     QString escapeCsvContent(const QString& content) const;
 };
 
-#endif // TABLEEXTRACTOR_H

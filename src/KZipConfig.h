@@ -8,8 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef KZIPCONFIG_H
-#define KZIPCONFIG_H
+#pragma once
 
 // KArchive版本定义
 #define KARCHIVE_VERSION_MAJOR 5
@@ -33,4 +32,3 @@
     #define KARCHIVE_DEBUG 0
 #endif
 
-#endif // KZIPCONFIG_H

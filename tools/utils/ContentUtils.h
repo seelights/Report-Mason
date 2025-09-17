@@ -8,8 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef CONTENTUTILS_H
-#define CONTENTUTILS_H
+#pragma once
 
 #include <QString>
 #include <QStringList>
@@ -189,4 +188,3 @@ private:
     ContentUtils() = delete; // 禁止实例化
 };
 
-#endif // CONTENTUTILS_H

@@ -1,5 +1,4 @@
-#ifndef LOGSYSTEM_H
-#define LOGSYSTEM_H
+#pragma once
 
 #include <QObject>
 #include <QTextEdit>
@@ -62,4 +61,3 @@ private:
     QString getCurrentTimestamp();
 };
 
-#endif // LOGSYSTEM_H

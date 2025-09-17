@@ -17,8 +17,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef CONTENTEXTRACTOR_H
-#define CONTENTEXTRACTOR_H
+#pragma once
 
 #include <QObject>
 #include <QString>
@@ -152,4 +151,3 @@ private:
     int m_idCounter;               // ID计数器
 };
 
-#endif // CONTENTEXTRACTOR_H

@@ -5,8 +5,7 @@
  * 解决Qt 6.8.2与Qt 6.9.1编译的Poppler库的ABI不兼容问题
  */
 
-#ifndef POPPLERCOMPAT_H
-#define POPPLERCOMPAT_H
+#pragma once
 
 #include <QString>
 #include <QByteArray>
@@ -60,4 +59,3 @@ private:
     static bool s_popplerAvailable;
 };
 
-#endif // POPPLERCOMPAT_H

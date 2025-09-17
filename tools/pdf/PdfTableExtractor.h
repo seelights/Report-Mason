@@ -8,8 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef PDFTABLEEXTRACTOR_H
-#define PDFTABLEEXTRACTOR_H
+#pragma once
 
 #include "../base/TableExtractor.h"
 #include "poppler-qt6-simple.h" // 使用Qt6版本的Poppler
@@ -113,4 +112,3 @@ private:
     QString m_currentPdfPath;
 };
 
-#endif // PDFTABLEEXTRACTOR_H

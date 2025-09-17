@@ -52,6 +52,7 @@ INCLUDEPATH += tools/base
 INCLUDEPATH += tools/docx
 INCLUDEPATH += tools/pdf
 INCLUDEPATH += tools/utils
+INCLUDEPATH += tools/ai
 INCLUDEPATH += src
 
 # Poppler库配置（使用本地源码）
@@ -87,6 +88,7 @@ SOURCES += \
     src/TestWidget.cpp \
     src/DocxContentTestWidget.cpp \
     src/PdfContentTestWidget.cpp \
+    src/AiTestWidget.cpp \
     src/FileConverter.cpp \
     src/DocToXmlConverter.cpp \
     src/PdfToXmlConverter.cpp \
@@ -116,7 +118,11 @@ SOURCES += \
     tools/docx/DocxChartExtractor.cpp \
     tools/pdf/PdfImageExtractor.cpp \
     tools/pdf/PdfTableExtractor.cpp \
-    tools/pdf/PdfChartExtractor.cpp
+    tools/pdf/PdfChartExtractor.cpp \
+    tools/ai/OpenAIBase.cpp \
+    tools/ai/OpenAINonStreamClient.cpp \
+    tools/ai/OpenAIStreamClient.cpp \
+    tools/ai/AiManager.cpp
 
 # 头文件
 HEADERS += \
@@ -125,6 +131,7 @@ HEADERS += \
     src/TestWidget.h \
     src/DocxContentTestWidget.h \
     src/PdfContentTestWidget.h \
+    src/AiTestWidget.h \
     src/FileConverter.h \
     src/DocToXmlConverter.h \
     src/PdfToXmlConverter.h \
@@ -132,6 +139,7 @@ HEADERS += \
     src/KZipConfig.h \
     src/KZipUtils.h \
     src/FieldExtractor.h \
+    src/QtCompat.h\
     libs/karchive/src/karchive.h \
     libs/karchive/src/karchive_export.h \
     libs/karchive/src/loggingcategory.h \
@@ -160,7 +168,12 @@ HEADERS += \
     tools/docx/DocxChartExtractor.h \
     tools/pdf/PdfImageExtractor.h \
     tools/pdf/PdfTableExtractor.h \
-    tools/pdf/PdfChartExtractor.h
+    tools/pdf/PdfChartExtractor.h \
+    tools/ai/LlmTypes.h \
+    tools/ai/OpenAIBase.h \
+    tools/ai/OpenAINonStreamClient.h \
+    tools/ai/OpenAIStreamClient.h \
+    tools/ai/AiManager.h
 
 # UI文件（已移除，使用代码创建界面）
 

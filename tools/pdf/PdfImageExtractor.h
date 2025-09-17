@@ -1,15 +1,14 @@
 /*
  * @Author: seelights
  * @Date: 2025-09-15 19:05:00
- * @LastEditTime: 2025-09-15 19:05:00
+ * @LastEditTime: 2025-09-17 18:30:40
  * @LastEditors: seelights
  * @Description: PDF图片提取器
  * @FilePath: \ReportMason\tools\pdf\PdfImageExtractor.h
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef PDFIMAGEEXTRACTOR_H
-#define PDFIMAGEEXTRACTOR_H
+#pragma once
 
 #include "../base/ImageExtractor.h"
 #include "poppler-qt6-simple.h" // 使用Qt6版本的Poppler
@@ -113,4 +112,3 @@ private:
     QString m_currentPdfPath;
 };
 
-#endif // PDFIMAGEEXTRACTOR_H

@@ -8,8 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef CHARTEXTRACTOR_H
-#define CHARTEXTRACTOR_H
+#pragma once
 
 #include "ContentExtractor.h"
 #include <QSize>
@@ -234,4 +233,3 @@ private:
     QStringList m_supportedTypes; // 支持的图表类型列表
 };
 
-#endif // CHARTEXTRACTOR_H

@@ -8,8 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef DOCXIMAGEEXTRACTOR_H
-#define DOCXIMAGEEXTRACTOR_H
+#pragma once
 
 #include "../base/ImageExtractor.h"
 #include "../../src/KZipUtils.h"
@@ -166,4 +165,3 @@ private:
     static const QString DOCX_MEDIA_PATH;
 };
 
-#endif // DOCXIMAGEEXTRACTOR_H

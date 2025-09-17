@@ -8,8 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef DOCXCHARTEXTRACTOR_H
-#define DOCXCHARTEXTRACTOR_H
+#pragma once
 
 #include "../base/ChartExtractor.h"
 #include "../../src/KZipUtils.h"
@@ -133,4 +132,3 @@ private:
     static const QString DOCX_CHARTS_PATH;
 };
 
-#endif // DOCXCHARTEXTRACTOR_H

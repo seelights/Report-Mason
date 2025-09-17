@@ -8,8 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef PDFCHARTEXTRACTOR_H
-#define PDFCHARTEXTRACTOR_H
+#pragma once
 
 #include "../base/ChartExtractor.h"
 #include "poppler-qt6-simple.h" // 使用Qt6版本的Poppler
@@ -132,4 +131,3 @@ private:
     QString m_currentPdfPath;
 };
 
-#endif // PDFCHARTEXTRACTOR_H

@@ -1,5 +1,4 @@
-#ifndef TESTWIDGET_H
-#define TESTWIDGET_H
+#pragma once
 
 #include <QWidget>
 #include <QVBoxLayout>
@@ -73,4 +72,3 @@ private:
     TemplateManager *m_templateManager;
 };
 
-#endif // TESTWIDGET_H

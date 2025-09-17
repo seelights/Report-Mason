@@ -8,8 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef IMAGEEXTRACTOR_H
-#define IMAGEEXTRACTOR_H
+#pragma once
 
 #include "ContentExtractor.h"
 #include <QSize>
@@ -169,4 +168,3 @@ private:
     QStringList m_supportedFormats;  // 支持的图片格式列表
 };
 
-#endif // IMAGEEXTRACTOR_H

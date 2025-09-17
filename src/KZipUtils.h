@@ -8,8 +8,7 @@
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
-#ifndef KZIPUTILS_H
-#define KZIPUTILS_H
+#pragma once
 
 #include <QString>
 #include <QByteArray>
@@ -98,4 +97,3 @@ private:
                                         const QString &prefix = QString());
 };
 
-#endif // KZIPUTILS_H
