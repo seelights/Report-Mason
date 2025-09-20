@@ -139,6 +139,20 @@ public:
     virtual bool exportToXml(const QList<TableInfo>& tables, const QString& outputPath);
 
     /**
+     * @brief 将表格导出为XML格式（返回字节数组）
+     * @param table 表格信息
+     * @return XML字节数组
+     */
+    virtual QByteArray exportToXmlByteArray(const TableInfo& table);
+
+    /**
+     * @brief 将表格列表导出为XML格式（返回字节数组）
+     * @param tables 表格列表
+     * @return XML字节数组
+     */
+    virtual QByteArray exportToXmlByteArray(const QList<TableInfo>& tables);
+
+    /**
      * @brief 将表格转换为JSON对象
      * @param table 表格信息
      * @return JSON对象

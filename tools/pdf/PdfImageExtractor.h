@@ -74,12 +74,12 @@ protected:
     bool getImagePosition(const QByteArray& pageContent, int imageIndex, QRect& position) const;
 
     /**
-     * @brief 获取图片尺寸
+     * @brief 获取PDF图片尺寸
      * @param imageData 图片数据
      * @param size 尺寸（输出）
      * @return 是否成功
      */
-    bool getImageSize(const QByteArray& imageData, QSize& size) const;
+    bool getPdfImageSize(const QByteArray& imageData, QSize& size) const;
 
     /**
      * @brief 检测PDF中的图片格式

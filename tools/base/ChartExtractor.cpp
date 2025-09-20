@@ -10,6 +10,7 @@
 
 #include "QtCompat.h"
 #include "ChartExtractor.h"
+#include "XmlHelper.h"
 #include <QFile>
 #include <QTextStream>
 #include <QJsonDocument>
@@ -20,7 +21,8 @@
 ChartExtractor::ChartExtractor(QObject* parent) : ContentExtractor(parent)
 {
     // 初始化支持的图表类型
-    m_supportedTypes << QS("bar") << QS("line") << QS("pie") << QS("scatter") << QS("area") << QS("histogram");
+    m_supportedTypes << QS("bar") << QS("line") << QS("pie") << QS("scatter") << QS("area")
+                     << QS("histogram");
 }
 
 ChartExtractor::~ChartExtractor() {}
@@ -59,7 +61,8 @@ bool ChartExtractor::exportToCsv(const ChartInfo& chart, const QString& outputPa
     // 写入数据
     for (const DataSeries& series : chart.series) {
         for (int i = 0; i < series.labels.size() && i < series.values.size(); ++i) {
-            stream << series.name << QS(",") << series.labels[i] << QS(",") << series.values[i] << QS("\n");
+            stream << series.name << QS(",") << series.labels[i] << QS(",") << series.values[i]
+                   << QS("\n");
         }
     }
 
@@ -271,11 +274,11 @@ bool ChartExtractor::exportToXml(const ChartInfo& chart, const QString& outputPa
     // 写入数据系列
     writer.writeStartElement(QS("DataSeries"));
     writer.writeAttribute(QS("count"), QString::number(chart.series.size()));
-    
+
     for (const DataSeries& series : chart.series) {
         writer.writeStartElement(QS("Series"));
         writer.writeAttribute(QS("name"), series.name);
-        
+
         // 写入标签
         writer.writeStartElement(QS("Labels"));
         for (const QString& label : series.labels) {
@@ -284,7 +287,7 @@ bool ChartExtractor::exportToXml(const ChartInfo& chart, const QString& outputPa
             writer.writeEndElement(); // Label
         }
         writer.writeEndElement(); // Labels
-        
+
         // 写入数值
         writer.writeStartElement(QS("Values"));
         for (double value : series.values) {
@@ -293,7 +296,7 @@ bool ChartExtractor::exportToXml(const ChartInfo& chart, const QString& outputPa
             writer.writeEndElement(); // Value
         }
         writer.writeEndElement(); // Values
-        
+
         writer.writeEndElement(); // Series
     }
     writer.writeEndElement(); // DataSeries
@@ -354,11 +357,11 @@ bool ChartExtractor::exportToXml(const QList<ChartInfo>& charts, const QString& 
         // 写入数据系列
         writer.writeStartElement(QS("DataSeries"));
         writer.writeAttribute(QS("count"), QString::number(chart.series.size()));
-        
+
         for (const DataSeries& series : chart.series) {
             writer.writeStartElement(QS("Series"));
             writer.writeAttribute(QS("name"), series.name);
-            
+
             // 写入标签
             writer.writeStartElement(QS("Labels"));
             for (const QString& label : series.labels) {
@@ -367,7 +370,7 @@ bool ChartExtractor::exportToXml(const QList<ChartInfo>& charts, const QString& 
                 writer.writeEndElement(); // Label
             }
             writer.writeEndElement(); // Labels
-            
+
             // 写入数值
             writer.writeStartElement(QS("Values"));
             for (double value : series.values) {
@@ -376,7 +379,7 @@ bool ChartExtractor::exportToXml(const QList<ChartInfo>& charts, const QString& 
                 writer.writeEndElement(); // Value
             }
             writer.writeEndElement(); // Values
-            
+
             writer.writeEndElement(); // Series
         }
         writer.writeEndElement(); // DataSeries
@@ -409,4 +412,87 @@ bool ChartExtractor::exportToXml(const QList<ChartInfo>& charts, const QString& 
 
     file.close();
     return true;
+}
+
+QByteArray ChartExtractor::exportToXmlByteArray(const ChartInfo& chart)
+{
+    QMap<QString, QString> attributes;
+    attributes[QS("id")] = chart.id;
+    attributes[QS("type")] = QString::number(static_cast<int>(chart.type));
+    attributes[QS("title")] = chart.title;
+    
+    // 添加位置信息
+    attributes[QS("x")] = QString::number(chart.position.x());
+    attributes[QS("y")] = QString::number(chart.position.y());
+    attributes[QS("positionWidth")] = QString::number(chart.position.width());
+    attributes[QS("positionHeight")] = QString::number(chart.position.height());
+
+    return XmlHelper::generateObjectXml(QS("Chart"), attributes, [&](QXmlStreamWriter& writer) {
+        // 写入数据系列
+        writer.writeStartElement(QS("DataSeries"));
+        writer.writeAttribute(QS("count"), QString::number(chart.series.size()));
+
+        for (const DataSeries& series : chart.series) {
+            writer.writeStartElement(QS("Series"));
+            writer.writeAttribute(QS("name"), series.name);
+
+            // 写入标签
+            XmlHelper::writeStringList(writer, QS("Labels"), QS("Label"), series.labels);
+
+            // 写入数值
+            writer.writeStartElement(QS("Values"));
+            for (double value : series.values) {
+                writer.writeTextElement(QS("Value"), QString::number(value));
+            }
+            writer.writeEndElement(); // Values
+
+            writer.writeEndElement(); // Series
+        }
+        writer.writeEndElement(); // DataSeries
+
+        // 写入图片数据
+        XmlHelper::writeBase64Data(writer, QS("ImageData"), chart.imageData);
+
+        // 写入属性
+        XmlHelper::writeJsonObject(writer, QS("Properties"), chart.properties);
+    });
+}
+
+QByteArray ChartExtractor::exportToXmlByteArray(const QList<ChartInfo>& charts)
+{
+    return XmlHelper::generateListXml<ChartInfo>(
+        QS("Charts"), QS("count"), QS("Chart"), charts,
+        [](QXmlStreamWriter& writer, const ChartInfo& chart) {
+            writer.writeAttribute(QS("id"), chart.id);
+            writer.writeAttribute(QS("type"), QString::number(static_cast<int>(chart.type)));
+            writer.writeAttribute(QS("title"), chart.title);
+
+            // 写入数据系列
+            writer.writeStartElement(QS("DataSeries"));
+            writer.writeAttribute(QS("count"), QString::number(chart.series.size()));
+
+            for (const DataSeries& series : chart.series) {
+                writer.writeStartElement(QS("Series"));
+                writer.writeAttribute(QS("name"), series.name);
+
+                // 写入标签
+                XmlHelper::writeStringList(writer, QS("Labels"), QS("Label"), series.labels);
+
+                // 写入数值
+                writer.writeStartElement(QS("Values"));
+                for (double value : series.values) {
+                    writer.writeTextElement(QS("Value"), QString::number(value));
+                }
+                writer.writeEndElement(); // Values
+
+                writer.writeEndElement(); // Series
+            }
+            writer.writeEndElement(); // DataSeries
+
+            // 写入图片数据
+            XmlHelper::writeBase64Data(writer, QS("ImageData"), chart.imageData);
+
+            // 写入属性
+            XmlHelper::writeJsonObject(writer, QS("Properties"), chart.properties);
+        });
 }

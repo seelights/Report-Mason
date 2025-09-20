@@ -10,6 +10,7 @@
 
 #include "QtCompat.h"
 #include "TableExtractor.h"
+#include "XmlHelper.h"
 #include <QFile>
 #include <QTextStream>
 #include <QJsonDocument>
@@ -372,4 +373,73 @@ bool TableExtractor::exportToXml(const QList<TableInfo>& tables, const QString& 
 
     file.close();
     return true;
+}
+
+QByteArray TableExtractor::exportToXmlByteArray(const TableInfo& table)
+{
+    QMap<QString, QString> attributes;
+    attributes[QS("id")] = table.id;
+    attributes[QS("rows")] = QString::number(table.rows);
+    attributes[QS("columns")] = QString::number(table.columns);
+    
+    // 添加位置信息
+    attributes[QS("x")] = QString::number(table.position.x());
+    attributes[QS("y")] = QString::number(table.position.y());
+    attributes[QS("positionWidth")] = QString::number(table.position.width());
+    attributes[QS("positionHeight")] = QString::number(table.position.height());
+
+    return XmlHelper::generateObjectXml(QS("Table"), attributes, [&](QXmlStreamWriter& writer) {
+        // 写入表格数据
+        writer.writeStartElement("Data");
+        for (int row = 0; row < table.rows; ++row) {
+            writer.writeStartElement("Row");
+            writer.writeAttribute("index", QString::number(row));
+
+            for (int col = 0; col < table.columns; ++col) {
+                writer.writeStartElement("Cell");
+                writer.writeAttribute("row", QString::number(row));
+                writer.writeAttribute("column", QString::number(col));
+                writer.writeCharacters(table.cells[row][col].content);
+                writer.writeEndElement(); // Cell
+            }
+
+            writer.writeEndElement(); // Row
+        }
+        writer.writeEndElement(); // Data
+
+        // 写入属性
+        XmlHelper::writeJsonObject(writer, QS("Properties"), table.properties);
+    });
+}
+
+QByteArray TableExtractor::exportToXmlByteArray(const QList<TableInfo>& tables)
+{
+    return XmlHelper::generateListXml<TableInfo>(
+        QS("Tables"), QS("count"), QS("Table"), tables,
+        [](QXmlStreamWriter& writer, const TableInfo& table) {
+            writer.writeAttribute("id", table.id);
+            writer.writeAttribute("rows", QString::number(table.rows));
+            writer.writeAttribute("columns", QString::number(table.columns));
+
+            // 写入表格数据
+            writer.writeStartElement("Data");
+            for (int row = 0; row < table.rows; ++row) {
+                writer.writeStartElement("Row");
+                writer.writeAttribute("index", QString::number(row));
+
+                for (int col = 0; col < table.columns; ++col) {
+                    writer.writeStartElement("Cell");
+                    writer.writeAttribute("row", QString::number(row));
+                    writer.writeAttribute("column", QString::number(col));
+                    writer.writeCharacters(table.cells[row][col].content);
+                    writer.writeEndElement(); // Cell
+                }
+
+                writer.writeEndElement(); // Row
+            }
+            writer.writeEndElement(); // Data
+
+            // 写入属性
+            XmlHelper::writeJsonObject(writer, QS("Properties"), table.properties);
+        });
 }

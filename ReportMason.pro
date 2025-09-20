@@ -90,6 +90,8 @@ SOURCES += \
     src/widgetTest/DocxContentTestWidget.cpp \
     src/widgetTest/PdfContentTestWidget.cpp \
     src/widgetTest/AiTestWidget.cpp \
+    src/widgetTest/DocxToXmlTestWidget.cpp \
+    src/widgetTest/PdfToXmlTestWidget.cpp \
     src/FileConverter.cpp \
     src/DocToXmlConverter.cpp \
     src/PdfToXmlConverter.cpp \
@@ -113,6 +115,7 @@ SOURCES += \
     tools/base/ImageExtractor.cpp \
     tools/base/TableExtractor.cpp \
     tools/base/ChartExtractor.cpp \
+    tools/base/XmlHelper.cpp \
     tools/utils/ContentUtils.cpp \
     tools/docx/DocxImageExtractor.cpp \
     tools/docx/DocxTableExtractor.cpp \
@@ -133,6 +136,8 @@ HEADERS += \
     src/widgetTest/DocxContentTestWidget.h \
     src/widgetTest/PdfContentTestWidget.h \
     src/widgetTest/AiTestWidget.h \
+    src/widgetTest/DocxToXmlTestWidget.h \
+    src/widgetTest/PdfToXmlTestWidget.h \
     src/FileConverter.h \
     src/DocToXmlConverter.h \
     src/PdfToXmlConverter.h \
@@ -163,6 +168,7 @@ HEADERS += \
     tools/base/ImageExtractor.h \
     tools/base/TableExtractor.h \
     tools/base/ChartExtractor.h \
+    tools/base/XmlHelper.h \
     tools/utils/ContentUtils.h \
     tools/docx/DocxImageExtractor.h \
     tools/docx/DocxTableExtractor.h \

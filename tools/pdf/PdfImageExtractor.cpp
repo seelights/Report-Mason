@@ -68,7 +68,7 @@ ImageExtractor::ExtractStatus PdfImageExtractor::extractImages(const QString& fi
         } else {
             qDebug() << "PdfImageExtractor: Poppler不可用，使用正则表达式方法";
         }
-        
+
         if (!parsePdfFile(filePath, images)) {
             setLastError(QS("解析PDF文件失败"));
             return ExtractStatus::PARSE_ERROR;
@@ -234,29 +234,95 @@ bool PdfImageExtractor::extractImagesFromPage(const QByteArray& pageContent, int
 
 bool PdfImageExtractor::parseImageObject(const QByteArray& imageData, ImageInfo& imageInfo) const
 {
-    Q_UNUSED(imageData)
-    Q_UNUSED(imageInfo)
+    if (imageData.isEmpty()) {
+        return false;
+    }
 
-    // 解析图片对象
-    // 这里需要实现具体的解析逻辑
-    qDebug() << "PdfImageExtractor: 解析图片对象";
+    // 设置基本信息
+    imageInfo.id = QS("pdf_img_") + QString::number(QDateTime::currentMSecsSinceEpoch());
+    imageInfo.data = imageData;
+    imageInfo.format = detectPdfImageFormat(imageData);
+
+    // 获取图片尺寸
+    QSize size;
+    if (getPdfImageSize(imageData, size)) {
+        imageInfo.size = size;
+    } else {
+        imageInfo.size = QSize(100, 100); // 默认尺寸
+    }
+
+    // 设置默认位置（实际位置需要从页面内容中提取）
+    imageInfo.position = QRect(0, 0, imageInfo.size.width(), imageInfo.size.height());
+
     return true;
 }
 
 bool PdfImageExtractor::getImagePosition(const QByteArray& pageContent, int imageIndex,
                                          QRect& position) const
 {
-    Q_UNUSED(pageContent)
-    Q_UNUSED(imageIndex)
-    Q_UNUSED(position)
+    position = QRect(0, 0, 0, 0);
 
-    // 获取图片位置
-    // 这里需要实现具体的解析逻辑
-    qDebug() << "PdfImageExtractor: 获取图片位置";
+    if (pageContent.isEmpty()) {
+        return false;
+    }
+
+    // 解析PDF页面内容流，查找图片的位置信息
+    // PDF中的图片位置通常通过变换矩阵(CTM)来定义
+    QString content = QString::fromUtf8(pageContent);
+
+    // 查找变换矩阵模式: [a b c d e f] cm
+    QRegularExpression matrixPattern(QS(R"(\[([\d\.\-\s]+)\]\s+cm)"));
+    QRegularExpressionMatchIterator matches = matrixPattern.globalMatch(content);
+
+    int currentIndex = 0;
+    while (matches.hasNext() && currentIndex <= imageIndex) {
+        QRegularExpressionMatch match = matches.next();
+        if (currentIndex == imageIndex) {
+            QString matrixStr = match.captured(1);
+            QStringList values =
+                matrixStr.split(QRegularExpression(QS(R"(\s+)")), Qt::SkipEmptyParts);
+
+            if (values.size() >= 6) {
+                bool ok1, ok2, ok3, ok4;
+                double a = values[0].toDouble(&ok1);
+                double b = values[1].toDouble(&ok2);
+                double c = values[2].toDouble(&ok3);
+                double d = values[3].toDouble(&ok4);
+                double e = values[4].toDouble();
+                double f = values[5].toDouble();
+
+                if (ok1 && ok2 && ok3 && ok4) {
+                    // 从变换矩阵中提取位置和尺寸
+                    // e, f 是平移分量（位置）
+                    // a, d 是缩放分量（尺寸）
+                    position.setX(static_cast<int>(e));
+                    position.setY(static_cast<int>(f));
+                    position.setWidth(static_cast<int>(qAbs(a) * 100)); // 简化处理
+                    position.setHeight(static_cast<int>(qAbs(d) * 100));
+                    return true;
+                }
+            }
+        }
+        currentIndex++;
+    }
+
+    // 如果没有找到变换矩阵，尝试查找其他位置信息
+    // 查找 q ... Q 操作符对（图形状态保存/恢复）
+    QRegularExpression gsPattern(QS(R"(q\s+([^Q]+)\s+Q)"));
+    QRegularExpressionMatch gsMatch = gsPattern.match(content);
+
+    if (gsMatch.hasMatch()) {
+        QString gsContent = gsMatch.captured(1);
+        // 解析图形状态中的位置信息
+        // 这里可以进一步解析具体的坐标信息
+    }
+
+    // 使用默认位置
+    position = QRect(0, 0, 100, 100);
     return true;
 }
 
-bool PdfImageExtractor::getImageSize(const QByteArray& imageData, QSize& size) const
+bool PdfImageExtractor::getPdfImageSize(const QByteArray& imageData, QSize& size) const
 {
     Q_UNUSED(imageData)
     Q_UNUSED(size)
@@ -357,7 +423,7 @@ QImage PdfImageExtractor::renderPageWithPoppler(int pageNumber, int dpi) const
 
         // 渲染页面为图像（Qt版本）
         QImage image = page->renderToImage(dpi, dpi);
-        
+
         // 清理页面对象
         delete page;
 

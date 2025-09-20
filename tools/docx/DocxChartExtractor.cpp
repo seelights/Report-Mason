@@ -1,7 +1,7 @@
 /*
  * @Author: seelights
  * @Date: 2025-09-15 19:05:00
- * @LastEditTime: 2025-09-15 19:05:00
+ * @LastEditTime: 2025-09-20 15:17:23
  * @LastEditors: seelights
  * @Description: DOCX图表提取器实现
  * @FilePath: \ReportMason\tools\docx\DocxChartExtractor.cpp
@@ -219,12 +219,92 @@ bool DocxChartExtractor::getChartSeries(const QByteArray& chartData,
 
 bool DocxChartExtractor::getChartPosition(QXmlStreamReader& reader, QRect& position) const
 {
-    Q_UNUSED(reader)
-    Q_UNUSED(position)
-
-    // 获取图表位置
-    // 这里需要实现具体的解析逻辑
-    qDebug() << "DocxChartExtractor: 获取图表位置";
+    position = QRect(0, 0, 0, 0);
+    bool hasPosition = false;
+    bool hasSize = false;
+    
+    while (!reader.atEnd() && !reader.hasError()) {
+        QXmlStreamReader::TokenType token = reader.readNext();
+        
+        if (token == QXmlStreamReader::StartElement) {
+            QString elementName = reader.name().toString();
+            QXmlStreamAttributes attributes = reader.attributes();
+            
+            if (elementName == QS("c:chart")) {
+                // 图表元素，解析其属性
+                QString left = attributes.value(QS("left")).toString();
+                QString top = attributes.value(QS("top")).toString();
+                QString width = attributes.value(QS("width")).toString();
+                QString height = attributes.value(QS("height")).toString();
+                
+                if (!left.isEmpty() && !top.isEmpty()) {
+                    bool ok1, ok2;
+                    int x = left.toInt(&ok1);
+                    int y = top.toInt(&ok2);
+                    if (ok1 && ok2) {
+                        position.setX(x);
+                        position.setY(y);
+                        hasPosition = true;
+                    }
+                }
+                
+                if (!width.isEmpty() && !height.isEmpty()) {
+                    bool ok1, ok2;
+                    int w = width.toInt(&ok1);
+                    int h = height.toInt(&ok2);
+                    if (ok1 && ok2) {
+                        position.setWidth(w);
+                        position.setHeight(h);
+                        hasSize = true;
+                    }
+                }
+            } else if (elementName == QS("wp:extent")) {
+                // 图表尺寸信息
+                QString cx = attributes.value(QS("cx")).toString();
+                QString cy = attributes.value(QS("cy")).toString();
+                
+                bool ok1, ok2;
+                qint64 widthEmu = cx.toLongLong(&ok1);
+                qint64 heightEmu = cy.toLongLong(&ok2);
+                
+                if (ok1 && ok2) {
+                    // 转换EMU到像素
+                    position.setWidth(static_cast<int>(widthEmu / 9525));
+                    position.setHeight(static_cast<int>(heightEmu / 9525));
+                    hasSize = true;
+                }
+            } else if (elementName == QS("wp:posOffset")) {
+                // 位置偏移
+                QString value = reader.readElementText();
+                bool ok;
+                qint64 emu = value.toLongLong(&ok);
+                if (ok) {
+                    if (!hasPosition) {
+                        position.setX(static_cast<int>(emu / 9525));
+                        hasPosition = true;
+                    } else {
+                        position.setY(static_cast<int>(emu / 9525));
+                    }
+                }
+            }
+        } else if (token == QXmlStreamReader::EndElement) {
+            QString elementName = reader.name().toString();
+            if (elementName == QS("c:chart") || elementName == QS("drawing")) {
+                break;
+            }
+        }
+    }
+    
+    // 如果没有找到位置信息，使用默认值
+    if (!hasPosition) {
+        position.setX(0);
+        position.setY(0);
+    }
+    if (!hasSize) {
+        position.setWidth(300);  // 默认宽度
+        position.setHeight(200); // 默认高度
+    }
+    
     return true;
 }
 

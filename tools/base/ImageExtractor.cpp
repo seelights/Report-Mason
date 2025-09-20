@@ -9,6 +9,7 @@
  */
 
 #include "ImageExtractor.h"
+#include "XmlHelper.h"
 #include "QtCompat.h"
 #include <QFileInfo>
 #include <QDir>
@@ -265,4 +266,55 @@ bool ImageExtractor::exportToXml(const QList<ImageInfo>& images, const QString& 
 
     file.close();
     return true;
+}
+
+QByteArray ImageExtractor::exportToXmlByteArray(const ImageInfo& image)
+{
+    QMap<QString, QString> attributes;
+    attributes[QS("id")] = image.id;
+    attributes[QS("format")] = image.format;
+    attributes[QS("width")] = QString::number(image.size.width());
+    attributes[QS("height")] = QString::number(image.size.height());
+    
+    // 添加位置信息
+    attributes[QS("x")] = QString::number(image.position.x());
+    attributes[QS("y")] = QString::number(image.position.y());
+    attributes[QS("positionWidth")] = QString::number(image.position.width());
+    attributes[QS("positionHeight")] = QString::number(image.position.height());
+
+    return XmlHelper::generateObjectXml(QS("Image"), attributes, [&](QXmlStreamWriter& writer) {
+        // 写入图片数据
+        XmlHelper::writeBase64Data(writer, QS("Data"), image.data);
+
+        // 写入保存路径
+        if (!image.savedPath.isEmpty()) {
+            writer.writeTextElement(QS("SavedPath"), image.savedPath);
+        }
+
+        // 写入元数据
+        XmlHelper::writeJsonObject(writer, QS("Metadata"), image.metadata);
+    });
+}
+
+QByteArray ImageExtractor::exportToXmlByteArray(const QList<ImageInfo>& images)
+{
+    return XmlHelper::generateListXml<ImageInfo>(
+        QS("Images"), QS("count"), QS("Image"), images,
+        [](QXmlStreamWriter& writer, const ImageInfo& image) {
+            writer.writeAttribute(QS("id"), image.id);
+            writer.writeAttribute(QS("format"), image.format);
+            writer.writeAttribute(QS("width"), QString::number(image.size.width()));
+            writer.writeAttribute(QS("height"), QString::number(image.size.height()));
+
+            // 写入图片数据
+            XmlHelper::writeBase64Data(writer, QS("Data"), image.data);
+
+            // 写入保存路径
+            if (!image.savedPath.isEmpty()) {
+                writer.writeTextElement(QS("SavedPath"), image.savedPath);
+            }
+
+            // 写入元数据
+            XmlHelper::writeJsonObject(writer, QS("Metadata"), image.metadata);
+        });
 }

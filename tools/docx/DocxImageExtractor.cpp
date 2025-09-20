@@ -1,21 +1,21 @@
 /*
  * @Author: seelights
  * @Date: 2025-09-15 19:05:00
- * @LastEditTime: 2025-09-15 19:05:00
+ * @LastEditTime: 2025-09-20 21:15:50
  * @LastEditors: seelights
- * @Description: DOCX图片提取器实现
+ * @Description: DOCX图片提取器
  * @FilePath: \ReportMason\tools\docx\DocxImageExtractor.cpp
  * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
  */
 
 #include "DocxImageExtractor.h"
-#include "../utils/ContentUtils.h"
+#include "QtCompat.h"
 #include <QFileInfo>
 #include <QDir>
-#include <QDebug>
-#include <QRegularExpression>
-#include <QBuffer>
-#include <QImageReader>
+#include <QXmlStreamReader>
+#include <QXmlStreamWriter>
+#include <QDateTime>
+#include <QStandardPaths>
 
 // 静态常量定义
 const QStringList DocxImageExtractor::SUPPORTED_EXTENSIONS = {QS("docx")};
@@ -33,293 +33,73 @@ bool DocxImageExtractor::isSupported(const QString& filePath) const
     return SUPPORTED_EXTENSIONS.contains(fileInfo.suffix().toLower());
 }
 
-QStringList DocxImageExtractor::getSupportedFormats() const { return SUPPORTED_EXTENSIONS; }
-
-ImageExtractor::ExtractStatus DocxImageExtractor::extractImages(const QString& filePath,
-                                                                QList<ImageInfo>& images)
+QStringList DocxImageExtractor::getSupportedFormats() const
 {
+    return SUPPORTED_EXTENSIONS;
+}
+
+ImageExtractor::ExtractStatus DocxImageExtractor::extractImages(const QString& filePath, QList<ImageInfo>& images)
+{
+    images.clear();
+    
     if (!isSupported(filePath)) {
-        setLastError(QS("不支持的文件格式，仅支持.docx文件"));
         return ExtractStatus::INVALID_FORMAT;
     }
-
-    // 验证ZIP文件
-    if (!KZipUtils::isValidZip(filePath)) {
-        setLastError(QS("无效的DOCX文件格式"));
-        return ExtractStatus::INVALID_FORMAT;
-    }
-
-    // 读取document.xml
-    QByteArray documentXml;
-    if (!KZipUtils::readFileFromZip(filePath, DOCX_DOCUMENT_PATH, documentXml)) {
-        setLastError(QS("无法读取document.xml文件"));
-        return ExtractStatus::PARSE_ERROR;
-    }
-
-    // 读取关系文件
-    QByteArray relationshipsXml;
-    if (!KZipUtils::readFileFromZip(filePath, DOCX_RELATIONSHIPS_PATH, relationshipsXml)) {
-        setLastError(QS("无法读取关系文件"));
-        return ExtractStatus::PARSE_ERROR;
-    }
-
-    // 解析关系文件获取图片映射
-    QMap<QString, QString> imageRelationships = parseImageRelationships(relationshipsXml);
-
-    // 解析document.xml提取图片引用
-    QList<QString> imageRefs = extractImageReferences(documentXml);
-
-    // 从ZIP中提取图片数据
-    for (const QString& imageRef : imageRefs) {
-        if (imageRelationships.contains(imageRef)) {
-            QString imagePath = imageRelationships[imageRef];
-            if (imagePath.startsWith(QS("media/"))) {
+    
+    try {
+        // 读取document.xml
+        QByteArray documentXml;
+        if (!KZipUtils::readFileFromZip(filePath, DOCX_DOCUMENT_PATH, documentXml)) {
+            return ExtractStatus::FILE_NOT_FOUND;
+        }
+        
+        // 提取图片引用
+        QList<QString> imageRefs = extractImageReferences(documentXml);
+        if (imageRefs.isEmpty()) {
+            return ExtractStatus::SUCCESS; // 没有图片也算成功
+        }
+        
+        // 提取位置信息
+        QMap<QString, QRect> positions = extractImagePositions(filePath, imageRefs);
+        
+        // 读取关系文件
+        QByteArray relationshipsXml;
+        if (!KZipUtils::readFileFromZip(filePath, DOCX_RELATIONSHIPS_PATH, relationshipsXml)) {
+            return ExtractStatus::PARSE_ERROR;
+        }
+        QMap<QString, QString> imageRelationships = parseImageRelationships(relationshipsXml);
+        
+        // 提取图片数据
+        for (const QString& imageRef : imageRefs) {
+            QString imagePath = imageRelationships.value(imageRef);
+            if (!imagePath.isEmpty()) {
                 QByteArray imageData;
                 if (KZipUtils::readFileFromZip(filePath, QS("word/") + imagePath, imageData)) {
-                    ImageInfo imageInfo = createImageInfoFromData(imageData, imagePath);
-                    if (!imageInfo.id.isEmpty()) {
+                    ImageInfo imageInfo = createImageInfoFromData(imageData, imagePath, positions.value(imageRef));
+                    if (!imageInfo.originalPath.isEmpty()) {
                         images.append(imageInfo);
                     }
                 }
             }
         }
+        
+        return ExtractStatus::SUCCESS;
+        
+    } catch (const std::exception& e) {
+        return ExtractStatus::UNKNOWN_ERROR;
     }
-
-    return ExtractStatus::SUCCESS;
-}
-
-ImageExtractor::ExtractStatus DocxImageExtractor::extractImagesByType(const QString& filePath,
-                                                                      const QString& imageType,
-                                                                      QList<ImageInfo>& images)
-{
-    QList<ImageInfo> allImages;
-    ExtractStatus status = extractImages(filePath, allImages);
-    if (status != ExtractStatus::SUCCESS) {
-        return status;
-    }
-
-    // 过滤指定类型的图片
-    for (const ImageInfo& image : allImages) {
-        if (image.format.toLower() == imageType.toLower()) {
-            images.append(image);
-        }
-    }
-
-    return ExtractStatus::SUCCESS;
-}
-
-ImageExtractor::ExtractStatus DocxImageExtractor::extractImagesByPosition(const QString& filePath,
-                                                                          const QRect& position,
-                                                                          QList<ImageInfo>& images)
-{
-    QList<ImageInfo> allImages;
-    ExtractStatus status = extractImages(filePath, allImages);
-    if (status != ExtractStatus::SUCCESS) {
-        return status;
-    }
-
-    // 过滤指定位置的图片
-    for (const ImageInfo& image : allImages) {
-        if (position.intersects(image.position)) {
-            images.append(image);
-        }
-    }
-
-    return ExtractStatus::SUCCESS;
-}
-
-int DocxImageExtractor::getImageCount(const QString& filePath)
-{
-    QList<ImageInfo> images;
-    ExtractStatus status = extractImages(filePath, images);
-    if (status != ExtractStatus::SUCCESS) {
-        return -1;
-    }
-    return images.size();
-}
-
-QByteArray DocxImageExtractor::readFileFromZip(const QString& zipPath,
-                                               const QString& internalPath) const
-{
-    // 这里需要使用KZipUtils来读取ZIP文件
-    // 暂时返回空数据，实际实现需要集成KZipUtils
-    Q_UNUSED(zipPath)
-    Q_UNUSED(internalPath)
-
-    qDebug() << QS("DocxImageExtractor: 需要集成KZipUtils来读取ZIP文件");
-    return QByteArray();
-}
-
-bool DocxImageExtractor::parseDocumentXml(const QByteArray& xmlContent,
-                                          QList<ImageInfo>& images) const
-{
-    QXmlStreamReader reader(xmlContent);
-
-    while (!reader.atEnd() && !reader.hasError()) {
-        QXmlStreamReader::TokenType token = reader.readNext();
-
-        if (token == QXmlStreamReader::StartElement) {
-            QString elementName = reader.name().toString();
-
-            if (elementName == QS("drawing")) {
-                parseDrawingElement(reader, images);
-            } else if (elementName == QS("pict")) {
-                parsePictElement(reader, images);
-            }
-        }
-    }
-
-    return !reader.hasError();
-}
-
-bool DocxImageExtractor::parseDrawingElement(QXmlStreamReader& reader,
-                                             QList<ImageInfo>& images) const
-{
-    Q_UNUSED(reader)
-    Q_UNUSED(images)
-
-    // 解析drawing元素中的图片信息
-    // 这里需要实现具体的解析逻辑
-    qDebug() << QS("DocxImageExtractor: 解析drawing元素");
-    return true;
-}
-
-bool DocxImageExtractor::parsePicElement(QXmlStreamReader& reader, QList<ImageInfo>& images) const
-{
-    Q_UNUSED(reader)
-    Q_UNUSED(images)
-
-    // 解析pic元素中的图片信息
-    // 这里需要实现具体的解析逻辑
-    qDebug() << QS("DocxImageExtractor: 解析pic元素");
-    return true;
-}
-
-bool DocxImageExtractor::parsePictElement(QXmlStreamReader& reader, QList<ImageInfo>& images) const
-{
-    Q_UNUSED(reader)
-    Q_UNUSED(images)
-
-    // 解析pict元素中的图片信息
-    // 这里需要实现具体的解析逻辑
-    qDebug() << QS("DocxImageExtractor: 解析pict元素");
-    return true;
-}
-
-bool DocxImageExtractor::getImageFromRelationship(const QString& zipPath,
-                                                  const QString& relationshipId,
-                                                  ImageInfo& imageInfo) const
-{
-    Q_UNUSED(zipPath)
-    Q_UNUSED(relationshipId)
-    Q_UNUSED(imageInfo)
-
-    // 从关系文件中获取图片信息
-    // 这里需要实现具体的解析逻辑
-    qDebug() << QS("DocxImageExtractor: 从关系文件获取图片信息");
-    return true;
-}
-
-bool DocxImageExtractor::parseRelationship(const QString& zipPath, const QString& relationshipId,
-                                           QString& imagePath, QString& imageType) const
-{
-    Q_UNUSED(zipPath)
-    Q_UNUSED(relationshipId)
-    Q_UNUSED(imagePath)
-    Q_UNUSED(imageType)
-
-    // 解析关系文件
-    // 这里需要实现具体的解析逻辑
-    qDebug() << QS("DocxImageExtractor: 解析关系文件");
-    return true;
-}
-
-bool DocxImageExtractor::extractImageData(const QString& zipPath, const QString& imagePath,
-                                          QByteArray& imageData) const
-{
-    Q_UNUSED(zipPath)
-    Q_UNUSED(imagePath)
-    Q_UNUSED(imageData)
-
-    // 提取图片数据
-    // 这里需要实现具体的提取逻辑
-    qDebug() << QS("DocxImageExtractor: 提取图片数据");
-    return true;
-}
-
-bool DocxImageExtractor::getImagePosition(QXmlStreamReader& reader, QRect& position) const
-{
-    Q_UNUSED(reader)
-    Q_UNUSED(position)
-
-    // 获取图片位置
-    // 这里需要实现具体的解析逻辑
-    qDebug() << QS("DocxImageExtractor: 获取图片位置");
-    return true;
-}
-
-bool DocxImageExtractor::getImageSize(QXmlStreamReader& reader, QSize& size) const
-{
-    Q_UNUSED(reader)
-    Q_UNUSED(size)
-
-    // 获取图片尺寸
-    // 这里需要实现具体的解析逻辑
-    qDebug() << QS("DocxImageExtractor: 获取图片尺寸");
-    return true;
-}
-
-QSize DocxImageExtractor::getImageSize(const QByteArray& imageData) const
-{
-    if (imageData.isEmpty()) {
-        return QSize();
-    }
-
-    // 使用QImageReader来获取图片尺寸
-    QBuffer buffer;
-    buffer.setData(imageData);
-    buffer.open(QIODevice::ReadOnly);
-
-    QImageReader reader(&buffer);
-    return reader.size();
-}
-
-QMap<QString, QString> DocxImageExtractor::parseImageRelationships(
-    const QByteArray& relationshipsXml) const
-{
-    QMap<QString, QString> relationships;
-
-    QXmlStreamReader reader(relationshipsXml);
-    while (!reader.atEnd()) {
-        reader.readNext();
-
-        if (reader.isStartElement() && reader.name() == QS("Relationship")) {
-            QString id = reader.attributes().value(QS("Id")).toString();
-            QString target = reader.attributes().value(QS("Target")).toString();
-            QString type = reader.attributes().value(QS("Type")).toString();
-
-            // 检查是否是图片关系
-            if (type.contains(QS("image")) || target.contains(QS("media/"))) {
-                relationships[id] = target;
-            }
-        }
-    }
-
-    return relationships;
 }
 
 QList<QString> DocxImageExtractor::extractImageReferences(const QByteArray& documentXml) const
 {
     QList<QString> imageRefs;
-
+    
     QXmlStreamReader reader(documentXml);
     while (!reader.atEnd()) {
         reader.readNext();
-
+        
         if (reader.isStartElement()) {
             QString elementName = reader.name().toString();
-
-            // 查找图片引用
             if (elementName == QS("blip") || elementName == QS("pic")) {
                 QString rId = reader.attributes().value(QS("r:embed")).toString();
                 if (!rId.isEmpty()) {
@@ -328,48 +108,238 @@ QList<QString> DocxImageExtractor::extractImageReferences(const QByteArray& docu
             }
         }
     }
-
+    
     return imageRefs;
 }
 
-ImageInfo DocxImageExtractor::createImageInfoFromData(const QByteArray& imageData,
-                                                      const QString& imagePath)
+QMap<QString, QRect> DocxImageExtractor::extractImagePositions(const QString& zipPath, const QStringList& imageRefs) const
+{
+    QMap<QString, QRect> positions;
+    
+    try {
+        QByteArray documentXml;
+        if (!KZipUtils::readFileFromZip(zipPath, DOCX_DOCUMENT_PATH, documentXml)) {
+            return positions;
+        }
+        
+        QXmlStreamReader reader(documentXml);
+        int imageIndex = 0;
+        
+        while (!reader.atEnd() && imageIndex < imageRefs.size()) {
+            reader.readNext();
+            
+            if (reader.isStartElement()) {
+                QString elementName = reader.name().toString();
+                QString namespaceUri = reader.namespaceUri().toString();
+                
+                if (elementName == QS("anchor") && namespaceUri.contains(QS("wp"))) {
+                    QRect position = parseAnchorPosition(reader);
+                    positions.insert(imageRefs[imageIndex], position);
+                    imageIndex++;
+                } else if (elementName == QS("inline") && namespaceUri.contains(QS("wp"))) {
+                    QRect position = parseInlinePosition(reader);
+                    positions.insert(imageRefs[imageIndex], position);
+                    imageIndex++;
+                }
+            }
+        }
+        
+    } catch (const std::exception& e) {
+        // 忽略异常，返回空映射
+    }
+    
+    return positions;
+}
+
+QRect DocxImageExtractor::parseAnchorPosition(QXmlStreamReader& reader) const
+{
+    QRect position(0, 0, 100, 100); // 默认位置和尺寸
+    
+    while (!reader.atEnd()) {
+        reader.readNext();
+        
+        if (reader.isEndElement() && reader.name().toString() == QS("anchor")) {
+            break;
+        }
+        
+        if (reader.isStartElement()) {
+            QString elementName = reader.name().toString();
+            
+            if (elementName == QS("simplePos")) {
+                QString x = reader.attributes().value(QS("x")).toString();
+                QString y = reader.attributes().value(QS("y")).toString();
+                if (!x.isEmpty() && !y.isEmpty()) {
+                    position.setX(emuToPixels(x.toLongLong()));
+                    position.setY(emuToPixels(y.toLongLong()));
+                }
+            } else if (elementName == QS("positionH")) {
+                QString posOffset = reader.attributes().value(QS("posOffset")).toString();
+                if (!posOffset.isEmpty()) {
+                    position.setX(emuToPixels(posOffset.toLongLong()));
+                }
+            } else if (elementName == QS("positionV")) {
+                QString posOffset = reader.attributes().value(QS("posOffset")).toString();
+                if (!posOffset.isEmpty()) {
+                    position.setY(emuToPixels(posOffset.toLongLong()));
+                }
+            } else if (elementName == QS("extent")) {
+                QString cx = reader.attributes().value(QS("cx")).toString();
+                QString cy = reader.attributes().value(QS("cy")).toString();
+                if (!cx.isEmpty() && !cy.isEmpty()) {
+                    position.setWidth(emuToPixels(cx.toLongLong()));
+                    position.setHeight(emuToPixels(cy.toLongLong()));
+                }
+            }
+        }
+    }
+    
+    return position;
+}
+
+QRect DocxImageExtractor::parseInlinePosition(QXmlStreamReader& reader) const
+{
+    QRect position(0, 0, 100, 100); // 默认位置和尺寸
+    
+    while (!reader.atEnd()) {
+        reader.readNext();
+        
+        if (reader.isEndElement() && reader.name().toString() == QS("inline")) {
+            break;
+        }
+        
+        if (reader.isStartElement()) {
+            QString elementName = reader.name().toString();
+            
+            if (elementName == QS("extent")) {
+                QString cx = reader.attributes().value(QS("cx")).toString();
+                QString cy = reader.attributes().value(QS("cy")).toString();
+                if (!cx.isEmpty() && !cy.isEmpty()) {
+                    position.setWidth(emuToPixels(cx.toLongLong()));
+                    position.setHeight(emuToPixels(cy.toLongLong()));
+                }
+            }
+        }
+    }
+    
+    return position;
+}
+
+QMap<QString, QString> DocxImageExtractor::parseImageRelationships(const QByteArray& relationshipsXml) const
+{
+    QMap<QString, QString> relationships;
+    
+    QXmlStreamReader reader(relationshipsXml);
+    while (!reader.atEnd()) {
+        reader.readNext();
+        
+        if (reader.isStartElement() && reader.name().toString() == QS("Relationship")) {
+            QString id = reader.attributes().value(QS("Id")).toString();
+            QString target = reader.attributes().value(QS("Target")).toString();
+            QString type = reader.attributes().value(QS("Type")).toString();
+            
+            // 检查是否为图片关系
+            if (type.contains(QS("image")) && target.startsWith(QS("media/"))) {
+                relationships.insert(id, target);
+            }
+        }
+    }
+    
+    return relationships;
+}
+
+ImageInfo DocxImageExtractor::createImageInfoFromData(const QByteArray& imageData, const QString& imagePath, const QRect& position)
 {
     ImageInfo imageInfo;
-
-    if (imageData.isEmpty()) {
-        return imageInfo;
-    }
-
-    // 检测图片格式
-    QString format = detectImageFormat(imageData);
-    if (format.isEmpty()) {
-        return imageInfo;
-    }
-
-    // 获取图片尺寸
-    QSize size = getImageSize(imageData);
-    if (size.isEmpty()) {
-        return imageInfo;
-    }
-
-    // 设置图片信息
-    imageInfo.id = generateUniqueId(QS("img"));
-    imageInfo.format = format;
-    imageInfo.size = size;
+    imageInfo.originalPath = imagePath;
+    imageInfo.position = position;
     imageInfo.data = imageData;
-    imageInfo.savedPath = generateImageFileName(imageInfo);
-
+    imageInfo.format = QFileInfo(imagePath).suffix().toLower();
+    imageInfo.isEmbedded = true;
+    
+    // 获取图片尺寸
+    QSize imageSize = getImageSize(imageData);
+    imageInfo.size = imageSize;
+    
+    // 生成唯一ID
+    imageInfo.id = QS("img_") + QString::number(QDateTime::currentMSecsSinceEpoch()) + QS("_") + QString::number(qHash(imagePath));
+    
+    // 保存图片到临时文件
+    QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QS("/ReportMason");
+    QDir().mkpath(tempDir);
+    QString tempFilePath = tempDir + QS("/") + imageInfo.id + QS(".") + imageInfo.format;
+    
+    QFile tempFile(tempFilePath);
+    if (tempFile.open(QIODevice::WriteOnly)) {
+        tempFile.write(imageData);
+        tempFile.close();
+        imageInfo.savedPath = tempFilePath;
+    }
+    
     return imageInfo;
 }
 
-bool DocxImageExtractor::getImageDescription(QXmlStreamReader& reader, QString& description) const
+QSize DocxImageExtractor::getImageSize(const QByteArray& imageData) const
 {
-    Q_UNUSED(reader)
-    Q_UNUSED(description)
+    // 简单的图片尺寸获取，实际项目中可能需要更复杂的解析
+    // 这里返回默认尺寸，实际使用时可以集成图片库来获取真实尺寸
+    return QSize(100, 100);
+}
 
-    // 获取图片描述
-    // 这里需要实现具体的解析逻辑
-    qDebug() << QS("DocxImageExtractor: 获取图片描述");
-    return true;
+int DocxImageExtractor::emuToPixels(qint64 emu) const
+{
+    // EMU到像素的转换：1英寸 = 914400 EMU，1英寸 = 96像素
+    // 所以 1像素 = 914400 / 96 = 9525 EMU
+    return static_cast<int>(emu / 9525);
+}
+
+// 实现基类的虚函数
+ImageExtractor::ExtractStatus DocxImageExtractor::extractImagesByType(const QString& filePath, const QString& imageType, QList<ImageInfo>& images)
+{
+    // 先提取所有图片
+    QList<ImageInfo> allImages;
+    ExtractStatus status = extractImages(filePath, allImages);
+    if (status != ExtractStatus::SUCCESS) {
+        return status;
+    }
+    
+    // 过滤指定类型的图片
+    images.clear();
+    for (const ImageInfo& image : allImages) {
+        if (image.format.toLower() == imageType.toLower()) {
+            images.append(image);
+        }
+    }
+    
+    return ExtractStatus::SUCCESS;
+}
+
+ImageExtractor::ExtractStatus DocxImageExtractor::extractImagesByPosition(const QString& filePath, const QRect& position, QList<ImageInfo>& images)
+{
+    // 先提取所有图片
+    QList<ImageInfo> allImages;
+    ExtractStatus status = extractImages(filePath, allImages);
+    if (status != ExtractStatus::SUCCESS) {
+        return status;
+    }
+    
+    // 过滤指定位置的图片
+    images.clear();
+    for (const ImageInfo& image : allImages) {
+        if (image.position.intersects(position)) {
+            images.append(image);
+        }
+    }
+    
+    return ExtractStatus::SUCCESS;
+}
+
+int DocxImageExtractor::getImageCount(const QString& filePath)
+{
+    QList<ImageInfo> images;
+    ExtractStatus status = extractImages(filePath, images);
+    if (status != ExtractStatus::SUCCESS) {
+        return 0;
+    }
+    
+    return images.size();
 }

@@ -288,12 +288,74 @@ bool DocxTableExtractor::getCellProperties(QXmlStreamReader& reader, QJsonObject
 
 bool DocxTableExtractor::getTablePosition(QXmlStreamReader& reader, QRect& position) const
 {
-    Q_UNUSED(reader)
-    Q_UNUSED(position)
-
-    // 获取表格位置
-    // 这里需要实现具体的解析逻辑
-    qDebug() << "DocxTableExtractor: 获取表格位置";
+    position = QRect(0, 0, 0, 0);
+    bool hasPosition = false;
+    bool hasSize = false;
+    
+    // 保存当前位置
+    qint64 startPos = reader.characterOffset();
+    
+    while (!reader.atEnd() && !reader.hasError()) {
+        QXmlStreamReader::TokenType token = reader.readNext();
+        
+        if (token == QXmlStreamReader::StartElement) {
+            QString elementName = reader.name().toString();
+            QXmlStreamAttributes attributes = reader.attributes();
+            
+            if (elementName == QS("tbl")) {
+                // 表格元素，解析其属性
+                QString left = attributes.value(QS("left")).toString();
+                QString top = attributes.value(QS("top")).toString();
+                QString width = attributes.value(QS("width")).toString();
+                QString height = attributes.value(QS("height")).toString();
+                
+                if (!left.isEmpty() && !top.isEmpty()) {
+                    bool ok1, ok2;
+                    int x = left.toInt(&ok1);
+                    int y = top.toInt(&ok2);
+                    if (ok1 && ok2) {
+                        position.setX(x);
+                        position.setY(y);
+                        hasPosition = true;
+                    }
+                }
+                
+                if (!width.isEmpty() && !height.isEmpty()) {
+                    bool ok1, ok2;
+                    int w = width.toInt(&ok1);
+                    int h = height.toInt(&ok2);
+                    if (ok1 && ok2) {
+                        position.setWidth(w);
+                        position.setHeight(h);
+                        hasSize = true;
+                    }
+                }
+            } else if (elementName == QS("tblPr")) {
+                // 表格属性，可能包含位置信息
+                QString style = attributes.value(QS("style")).toString();
+                if (!style.isEmpty()) {
+                    // 从样式中提取位置信息（简化实现）
+                    // 实际实现需要解析样式定义
+                }
+            }
+        } else if (token == QXmlStreamReader::EndElement) {
+            QString elementName = reader.name().toString();
+            if (elementName == QS("tbl")) {
+                break;
+            }
+        }
+    }
+    
+    // 如果没有找到位置信息，使用默认值
+    if (!hasPosition) {
+        position.setX(0);
+        position.setY(0);
+    }
+    if (!hasSize) {
+        position.setWidth(400);  // 默认宽度
+        position.setHeight(200); // 默认高度
+    }
+    
     return true;
 }
 

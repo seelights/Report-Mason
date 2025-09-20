@@ -114,6 +114,20 @@ public:
     virtual bool exportToXml(const QList<ImageInfo> &images, const QString &outputPath);
 
     /**
+     * @brief 将图片导出为XML格式（返回字节数组）
+     * @param image 图片信息
+     * @return XML字节数组
+     */
+    virtual QByteArray exportToXmlByteArray(const ImageInfo &image);
+
+    /**
+     * @brief 将图片列表导出为XML格式（返回字节数组）
+     * @param images 图片列表
+     * @return XML字节数组
+     */
+    virtual QByteArray exportToXmlByteArray(const QList<ImageInfo> &images);
+
+    /**
      * @brief 从Base64创建图片信息
      * @param base64String Base64编码字符串
      * @param format 图片格式

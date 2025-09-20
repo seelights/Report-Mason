@@ -29,6 +29,8 @@
 #include "src/widgetTest/DocxContentTestWidget.h"
 #include "src/widgetTest/PdfContentTestWidget.h"
 #include "src/widgetTest/AiTestWidget.h" // 暂时注释掉AI模块
+#include "src/widgetTest/DocxToXmlTestWidget.h"
+#include "src/widgetTest/PdfToXmlTestWidget.h"
 
 int main(int argc, char* argv[])
 {
@@ -70,6 +72,14 @@ int main(int argc, char* argv[])
     // 添加AI功能测试标签页
     AiTestWidget* aiTestWidget = new AiTestWidget();
     tabWidget->addTab(aiTestWidget, QStringLiteral("AI功能测试"));
+
+    // 添加DOCX无损转换测试标签页
+    DocxToXmlTestWidget* docxToXmlTestWidget = new DocxToXmlTestWidget();
+    tabWidget->addTab(docxToXmlTestWidget, QStringLiteral("DOCX无损转换"));
+
+    // 添加PDF无损转换测试标签页
+    PdfToXmlTestWidget* pdfToXmlTestWidget = new PdfToXmlTestWidget();
+    tabWidget->addTab(pdfToXmlTestWidget, QStringLiteral("PDF无损转换"));
 
     // 设置布局
     QVBoxLayout* layout = new QVBoxLayout(&mainWindow);

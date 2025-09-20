@@ -1,7 +1,7 @@
 /*
  * @Author: seelights
  * @Date: 2025-09-15 19:05:00
- * @LastEditTime: 2025-09-15 19:05:00
+ * @LastEditTime: 2025-09-20 21:15:50
  * @LastEditors: seelights
  * @Description: DOCX图片提取器
  * @FilePath: \ReportMason\tools\docx\DocxImageExtractor.h
@@ -154,9 +154,42 @@ protected:
      * @brief 从图片数据创建图片信息
      * @param imageData 图片数据
      * @param imagePath 图片路径
+     * @param position 图片位置
      * @return 图片信息
      */
-    ImageInfo createImageInfoFromData(const QByteArray &imageData, const QString &imagePath);
+    ImageInfo createImageInfoFromData(const QByteArray &imageData, const QString &imagePath, const QRect &position = QRect());
+
+    /**
+     * @brief 从DOCX文档中提取图片位置信息
+     * @param zipPath ZIP文件路径
+     * @param imageRefs 图片引用列表
+     * @return 图片位置映射
+     */
+    QMap<QString, QRect> extractImagePositions(const QString &zipPath, const QStringList &imageRefs) const;
+
+    /**
+     * @brief 解析drawing元素获取位置信息
+     * @param reader XML读取器
+     * @return 位置信息
+     */
+    QRect parseDrawingPosition(QXmlStreamReader &reader) const;
+    QRect parseDrawingPositionNew(QXmlStreamReader &reader) const;
+    QRect parseAnchorPosition(QXmlStreamReader &reader) const;
+    QRect parseInlinePosition(QXmlStreamReader &reader) const;
+
+    /**
+     * @brief 解析pict元素获取位置信息
+     * @param reader XML读取器
+     * @return 位置信息
+     */
+    QRect parsePictPosition(QXmlStreamReader &reader) const;
+
+    /**
+     * @brief 将EMU单位转换为像素
+     * @param emu EMU值
+     * @return 像素值
+     */
+    int emuToPixels(qint64 emu) const;
 
 private:
     static const QStringList SUPPORTED_EXTENSIONS;

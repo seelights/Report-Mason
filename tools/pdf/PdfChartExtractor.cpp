@@ -292,13 +292,67 @@ bool PdfChartExtractor::extractChartData(const QByteArray& pageContent, const QR
 bool PdfChartExtractor::getChartPosition(const QByteArray& pageContent, int chartIndex,
                                          QRect& position) const
 {
-    Q_UNUSED(pageContent)
-    Q_UNUSED(chartIndex)
-    Q_UNUSED(position)
+    position = QRect(0, 0, 0, 0);
 
-    // 获取图表位置
-    // 这里需要实现具体的解析逻辑
-    qDebug() << QS("PdfChartExtractor: 获取图表位置");
+    if (pageContent.isEmpty()) {
+        return false;
+    }
+
+    // 解析PDF页面内容，查找图表的位置信息
+    QString content = QString::fromUtf8(pageContent);
+
+    // 查找图表相关的图形操作符
+    // PDF中的图表通常通过路径绘制操作符来定义位置
+    QRegularExpression pathPattern(QS(R"((\d+\.?\d*)\s+(\d+\.?\d*)\s+m)"));
+    QRegularExpressionMatchIterator matches = pathPattern.globalMatch(content);
+
+    int currentIndex = 0;
+    while (matches.hasNext() && currentIndex <= chartIndex) {
+        QRegularExpressionMatch match = matches.next();
+        if (currentIndex == chartIndex) {
+            bool ok1, ok2;
+            double x = match.captured(1).toDouble(&ok1);
+            double y = match.captured(2).toDouble(&ok2);
+
+            if (ok1 && ok2) {
+                position.setX(static_cast<int>(x));
+                position.setY(static_cast<int>(y));
+                // 图表尺寸需要根据内容估算
+                position.setWidth(300);  // 默认宽度
+                position.setHeight(200); // 默认高度
+                return true;
+            }
+        }
+        currentIndex++;
+    }
+
+    // 如果没有找到路径操作符，尝试查找其他位置信息
+    // 查找椭圆绘制操作符（图表可能用椭圆表示）
+    QRegularExpression ellipsePattern(QS(
+        R"((\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+c)"));
+    QRegularExpressionMatch ellipseMatch = ellipsePattern.match(content);
+
+    if (ellipseMatch.hasMatch()) {
+        bool ok1, ok2, ok3, ok4;
+        double x1 = ellipseMatch.captured(1).toDouble(&ok1);
+        double y1 = ellipseMatch.captured(2).toDouble(&ok2);
+        double x2 = ellipseMatch.captured(3).toDouble(&ok3);
+        double y2 = ellipseMatch.captured(4).toDouble(&ok4);
+
+        if (ok1 && ok2 && ok3 && ok4) {
+            // 计算椭圆的边界矩形
+            int minX = static_cast<int>(qMin(x1, x2));
+            int minY = static_cast<int>(qMin(y1, y2));
+            int maxX = static_cast<int>(qMax(x1, x2));
+            int maxY = static_cast<int>(qMax(y1, y2));
+
+            position = QRect(minX, minY, maxX - minX, maxY - minY);
+            return true;
+        }
+    }
+
+    // 使用默认位置
+    position = QRect(0, 0, 300, 200);
     return true;
 }
 
@@ -403,7 +457,7 @@ QString PdfChartExtractor::extractTextFromPageWithPoppler(int pageNumber) const
 
         // 提取文本（Qt版本）
         QString text = page->text(QRect());
-        
+
         // 清理页面对象
         delete page;
 

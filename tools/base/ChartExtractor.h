@@ -159,6 +159,20 @@ public:
     virtual bool exportToXml(const QList<ChartInfo>& charts, const QString& outputPath);
 
     /**
+     * @brief 将图表导出为XML格式（返回字节数组）
+     * @param chart 图表信息
+     * @return XML字节数组
+     */
+    virtual QByteArray exportToXmlByteArray(const ChartInfo& chart);
+
+    /**
+     * @brief 将图表列表导出为XML格式（返回字节数组）
+     * @param charts 图表列表
+     * @return XML字节数组
+     */
+    virtual QByteArray exportToXmlByteArray(const QList<ChartInfo>& charts);
+
+    /**
      * @brief 将图表转换为JSON对象
      * @param chart 图表信息
      * @return JSON对象
