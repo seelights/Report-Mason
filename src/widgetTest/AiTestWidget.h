@@ -15,8 +15,8 @@
 #include <QSplitter>
 #include <QProgressBar>
 #include <QScrollArea>
-#include "../src/QtCompat.h"
-#include "../tools/ai/AiManager.h"
+#include "QtCompat.h"
+#include "tools/ai/AiManager.h"
 
 /**
  * @brief AI功能测试窗口

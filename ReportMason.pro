@@ -54,6 +54,7 @@ INCLUDEPATH += tools/pdf
 INCLUDEPATH += tools/utils
 INCLUDEPATH += tools/ai
 INCLUDEPATH += src
+INCLUDEPATH += src/widgetTest
 
 # Poppler库配置（使用本地源码）
 # 使用Poppler 24.08.0源码直接编译
@@ -84,11 +85,11 @@ QMAKE_LFLAGS += -Wl,--allow-multiple-definition
 SOURCES += \
     main.cpp \
     src/LogSystem.cpp \
-    src/XmlTestWidget.cpp \
-    src/TestWidget.cpp \
-    src/DocxContentTestWidget.cpp \
-    src/PdfContentTestWidget.cpp \
-    src/AiTestWidget.cpp \
+    src/widgetTest/XmlTestWidget.cpp \
+    src/widgetTest/TestWidget.cpp \
+    src/widgetTest/DocxContentTestWidget.cpp \
+    src/widgetTest/PdfContentTestWidget.cpp \
+    src/widgetTest/AiTestWidget.cpp \
     src/FileConverter.cpp \
     src/DocToXmlConverter.cpp \
     src/PdfToXmlConverter.cpp \
@@ -127,11 +128,11 @@ SOURCES += \
 # 头文件
 HEADERS += \
     src/LogSystem.h \
-    src/XmlTestWidget.h \
-    src/TestWidget.h \
-    src/DocxContentTestWidget.h \
-    src/PdfContentTestWidget.h \
-    src/AiTestWidget.h \
+    src/widgetTest/XmlTestWidget.h \
+    src/widgetTest/TestWidget.h \
+    src/widgetTest/DocxContentTestWidget.h \
+    src/widgetTest/PdfContentTestWidget.h \
+    src/widgetTest/AiTestWidget.h \
     src/FileConverter.h \
     src/DocToXmlConverter.h \
     src/PdfToXmlConverter.h \

@@ -24,11 +24,11 @@
 #include <QStandardPaths>
 #include <QTabWidget>
 
-#include "src/XmlTestWidget.h"
-#include "src/TestWidget.h"
-#include "src/DocxContentTestWidget.h"
-#include "src/PdfContentTestWidget.h"
-#include "src/AiTestWidget.h" // 暂时注释掉AI模块
+#include "src/widgetTest/XmlTestWidget.h"
+#include "src/widgetTest/TestWidget.h"
+#include "src/widgetTest/DocxContentTestWidget.h"
+#include "src/widgetTest/PdfContentTestWidget.h"
+#include "src/widgetTest/AiTestWidget.h" // 暂时注释掉AI模块
 
 int main(int argc, char* argv[])
 {
