@@ -224,6 +224,116 @@ QRect DocxImageExtractor::parseInlinePosition(QXmlStreamReader& reader) const
     return position;
 }
 
+QRect DocxImageExtractor::parseDrawingPosition(QXmlStreamReader& reader) const
+{
+    QRect position(0, 0, 100, 100); // 默认位置和尺寸
+    
+    while (!reader.atEnd()) {
+        reader.readNext();
+        
+        if (reader.isEndElement() && reader.name().toString() == QS("drawing")) {
+            break;
+        }
+        
+        if (reader.isStartElement()) {
+            QString elementName = reader.name().toString();
+            
+            if (elementName == QS("posOffset")) {
+                QString value = reader.readElementText();
+                if (!value.isEmpty()) {
+                    bool ok;
+                    qint64 emu = value.toLongLong(&ok);
+                    if (ok) {
+                        // 根据属性判断是X还是Y坐标
+                        QString attr = reader.attributes().value(QS("x")).toString();
+                        if (!attr.isEmpty()) {
+                            position.setX(emuToPixels(emu));
+                        } else {
+                            position.setY(emuToPixels(emu));
+                        }
+                    }
+                }
+            } else if (elementName == QS("extent")) {
+                QString cx = reader.attributes().value(QS("cx")).toString();
+                QString cy = reader.attributes().value(QS("cy")).toString();
+                if (!cx.isEmpty() && !cy.isEmpty()) {
+                    position.setWidth(emuToPixels(cx.toLongLong()));
+                    position.setHeight(emuToPixels(cy.toLongLong()));
+                }
+            }
+        }
+    }
+    
+    return position;
+}
+
+QRect DocxImageExtractor::parseDrawingPositionNew(QXmlStreamReader& reader) const
+{
+    QRect position(0, 0, 100, 100); // 默认位置和尺寸
+    
+    while (!reader.atEnd()) {
+        reader.readNext();
+        
+        if (reader.isEndElement() && reader.name().toString() == QS("drawing")) {
+            break;
+        }
+        
+        if (reader.isStartElement()) {
+            QString elementName = reader.name().toString();
+            QString namespaceUri = reader.namespaceUri().toString();
+            
+            if (elementName == QS("anchor") && namespaceUri.contains(QS("wp"))) {
+                return parseAnchorPosition(reader);
+            } else if (elementName == QS("inline") && namespaceUri.contains(QS("wp"))) {
+                return parseInlinePosition(reader);
+            }
+        }
+    }
+    
+    return position;
+}
+
+QRect DocxImageExtractor::parsePictPosition(QXmlStreamReader& reader) const
+{
+    QRect position(0, 0, 100, 100); // 默认位置和尺寸
+    
+    while (!reader.atEnd()) {
+        reader.readNext();
+        
+        if (reader.isEndElement() && reader.name().toString() == QS("pict")) {
+            break;
+        }
+        
+        if (reader.isStartElement()) {
+            QString elementName = reader.name().toString();
+            
+            if (elementName == QS("left")) {
+                QString value = reader.readElementText();
+                if (!value.isEmpty()) {
+                    position.setX(value.toInt());
+                }
+            } else if (elementName == QS("top")) {
+                QString value = reader.readElementText();
+                if (!value.isEmpty()) {
+                    position.setY(value.toInt());
+                }
+            } else if (elementName == QS("width")) {
+                QString value = reader.readElementText();
+                if (!value.isEmpty()) {
+                    position.setWidth(value.toInt());
+                }
+            } else if (elementName == QS("height")) {
+                QString value = reader.readElementText();
+                if (!value.isEmpty()) {
+                    position.setHeight(value.toInt());
+                }
+            }
+        }
+    }
+    
+    return position;
+}
+
 QMap<QString, QString> DocxImageExtractor::parseImageRelationships(const QByteArray& relationshipsXml) const
 {
     QMap<QString, QString> relationships;

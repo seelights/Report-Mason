@@ -125,6 +125,26 @@ void PdfToXmlTestWidget::setupUI()
     m_settingLayout->addWidget(m_extractImagesCheck);
     m_settingLayout->addStretch();
 
+    // 调试输出区域
+    m_debugGroup = new QGroupBox(QS("调试输出"), this);
+    QVBoxLayout* debugLayout = new QVBoxLayout(m_debugGroup);
+    
+    m_debugOutput = new QTextEdit(this);
+    m_debugOutput->setReadOnly(true);
+    m_debugOutput->setFont(QFont(QS("Consolas"), 9));
+    m_debugOutput->setMaximumHeight(150);
+    
+    QHBoxLayout* debugBtnLayout = new QHBoxLayout();
+    m_clearDebugBtn = new QPushButton(QS("清空调试"), this);
+    m_saveDebugBtn = new QPushButton(QS("保存调试"), this);
+    
+    debugBtnLayout->addWidget(m_clearDebugBtn);
+    debugBtnLayout->addWidget(m_saveDebugBtn);
+    debugBtnLayout->addStretch();
+    
+    debugLayout->addWidget(m_debugOutput);
+    debugLayout->addLayout(debugBtnLayout);
+
     // 结果展示
     QGroupBox* resultGroup = new QGroupBox(QS("转换结果"), this);
     QVBoxLayout* resultLayout = new QVBoxLayout(resultGroup);
@@ -169,6 +189,7 @@ void PdfToXmlTestWidget::setupUI()
     m_mainLayout->addWidget(controlGroup);
     m_mainLayout->addWidget(progressGroup);
     m_mainLayout->addWidget(m_settingGroup);
+    m_mainLayout->addWidget(m_debugGroup);
     m_mainLayout->addWidget(resultGroup, 1);
 }
 
@@ -181,6 +202,10 @@ void PdfToXmlTestWidget::setupConnections()
     connect(m_openFileBtn, &QPushButton::clicked, this, &PdfToXmlTestWidget::onOpenOutputFile);
     connect(m_openDirBtn, &QPushButton::clicked, this, &PdfToXmlTestWidget::onOpenOutputDir);
     connect(m_clearBtn, &QPushButton::clicked, this, &PdfToXmlTestWidget::clearResults);
+    
+    // 调试按钮
+    connect(m_clearDebugBtn, &QPushButton::clicked, this, &PdfToXmlTestWidget::onClearDebugOutput);
+    connect(m_saveDebugBtn, &QPushButton::clicked, this, &PdfToXmlTestWidget::onSaveDebugOutput);
 
     // 设置选项
     connect(m_verboseModeCheck, &QCheckBox::toggled, this,
