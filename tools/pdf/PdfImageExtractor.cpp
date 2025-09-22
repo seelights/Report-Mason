@@ -1,7 +1,7 @@
 /*
  * @Author: seelights
  * @Date: 2025-09-15 19:05:00
- * @LastEditTime: 2025-09-16 12:28:44
+ * @LastEditTime: 2025-09-22 11:39:31
  * @LastEditors: seelights
  * @Description: PDF图片提取器实现
  * @FilePath: \ReportMason\tools\pdf\PdfImageExtractor.cpp
@@ -20,7 +20,7 @@
 #include "../../src/PopplerCompat.h"
 
 // 根据Poppler可用性决定是否使用Poppler
-#include "poppler-qt6-simple.h"
+#include "poppler-qt6.h"
 #include <memory>
 
 // 静态常量定义
@@ -416,16 +416,15 @@ QImage PdfImageExtractor::renderPageWithPoppler(int pageNumber, int dpi) const
 
     try {
         // 获取页面（Qt版本）
-        Poppler::Page* page = m_popplerDocument->page(pageNumber);
+        std::unique_ptr<Poppler::Page> page = m_popplerDocument->page(pageNumber);
         if (!page) {
             return QImage();
         }
 
         // 渲染页面为图像（Qt版本）
-        QImage image = page->renderToImage(dpi, dpi);
+        QImage image = page->renderToImage(dpi, dpi, -1, -1, -1, -1);
 
-        // 清理页面对象
-        delete page;
+        // 页面对象会自动清理（unique_ptr）
 
         return image;
     } catch (const std::exception& e) {

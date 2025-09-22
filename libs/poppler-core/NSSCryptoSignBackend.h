@@ -36,15 +36,60 @@
 #include <nspr.h>
 
 /* NSS headers */
-#include <cms.h>
 #include <nss.h>
 #include <cert.h>
-#include <cryptohi.h>
+#include <certt.h>
+#include <cms.h>
+#include <cmst.h>
+#include <pk11pub.h>
 #include <secerr.h>
 #include <secoid.h>
-#include <secmodt.h>
+#include <secoidt.h>
+#include <secasn1.h>
+#include <secasn1t.h>
+#include <secitem.h>
+#include <hasht.h>
 #include <sechash.h>
+#include <secmod.h>
+#include <secmodt.h>
+#include <secder.h>
+#include <secdert.h>
+#include <keyhi.h>
+#include <keythi.h>
+#include <secport.h>
+#include <secpkcs7.h>
+#include <secmime.h>
+#include <pkcs11t.h>
+#include <pkcs11n.h>
+#include <secasn1.h>
+#include <secasn1t.h>
+#include <secdert.h>
+#include <secitem.h>
+#include <secerr.h>
+#include <secoid.h>
+#include <secoidt.h>
+#include "Error.h"
 #include "CryptoSignBackend.h"
+
+// Additional macros and constants needed
+#ifndef PRIVKEY_LIST_HEAD
+#define PRIVKEY_LIST_HEAD(list) ((list)->head)
+#endif
+#ifndef PRIVKEY_LIST_END
+#define PRIVKEY_LIST_END(node, list) ((node) == (list)->head)
+#endif
+#ifndef PRIVKEY_LIST_NEXT
+#define PRIVKEY_LIST_NEXT(node) ((node)->next)
+#endif
+
+#ifndef errInternal
+#define errInternal errInternal
+#endif
+
+// Forward declarations for missing functions
+extern "C" {
+    // error function is now included from Error.h
+}
 
 class HashContext
 {

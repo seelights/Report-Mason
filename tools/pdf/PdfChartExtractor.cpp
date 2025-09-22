@@ -1,7 +1,7 @@
 /*
  * @Author: seelights
  * @Date: 2025-09-15 19:05:00
- * @LastEditTime: 2025-09-17 09:57:36
+ * @LastEditTime: 2025-09-22 11:04:25
  * @LastEditors: seelights
  * @Description: PDF图表提取器实现
  * @FilePath: \ReportMason\tools\pdf\PdfChartExtractor.cpp
@@ -450,16 +450,15 @@ QString PdfChartExtractor::extractTextFromPageWithPoppler(int pageNumber) const
 
     try {
         // 获取页面（Qt版本）
-        Poppler::Page* page = m_popplerDocument->page(pageNumber);
+        std::unique_ptr<Poppler::Page> page = m_popplerDocument->page(pageNumber);
         if (!page) {
             return QString();
         }
 
         // 提取文本（Qt版本）
-        QString text = page->text(QRect());
+        QString text = page->text(QRectF());
 
-        // 清理页面对象
-        delete page;
+        // 页面对象会自动清理（unique_ptr）
 
         return text;
     } catch (const std::exception& e) {

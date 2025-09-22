@@ -35,19 +35,7 @@
 #include <Error.h>
 
 /* NSS headers */
-#include <secmod.h>
-#include <secoid.h>
-#include <keyhi.h>
-#include <secder.h>
-#include <pk11pub.h>
-#include <secpkcs7.h>
-
-#include <cert.h>
-#include <hasht.h>
-#include <secerr.h>
-#include <sechash.h>
-#include <cms.h>
-#include <cmst.h>
+#include <nss.h>
 
 /**
  * General name, defined by RFC 3280.
@@ -538,7 +526,7 @@ std::string NSSSignatureVerification::getSignerSubjectDN() const
     if (!signing_cert) {
         return {};
     }
-    return std::string { signing_cert->subjectName };
+    return std::string(signing_cert->subjectName);
 }
 
 std::chrono::system_clock::time_point NSSSignatureVerification::getSigningTime() const
@@ -846,11 +834,7 @@ NSSSignatureVerification::~NSSSignatureVerification()
 static NSSCMSMessage *CMS_MessageCreate(SECItem *cms_item)
 {
     if (cms_item->data) {
-        return NSS_CMSMessage_CreateFromDER(cms_item, nullptr, nullptr /* Content callback */
-                                            ,
-                                            nullptr, nullptr /*Password callback*/
-                                            ,
-                                            nullptr, nullptr /*Decrypt callback*/);
+        return NSS_CMSMessage_CreateFromDER(cms_item, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
     } else {
         return nullptr;
     }

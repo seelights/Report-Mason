@@ -25,6 +25,7 @@
 
 #include "Object.h"
 #include "Stream.h"
+#include "../span_compat.h"
 
 class QIODevice;
 

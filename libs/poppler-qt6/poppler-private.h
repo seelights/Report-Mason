@@ -197,13 +197,13 @@ public:
     explicit FontInfoData(::FontInfo *fi)
     {
         if (fi->getName()) {
-            fontName = fi->getName()->c_str();
+            fontName = QString::fromUtf8(fi->getName()->c_str());
         }
         if (fi->getFile()) {
-            fontFile = fi->getFile()->c_str();
+            fontFile = QString::fromUtf8(fi->getFile()->c_str());
         }
         if (fi->getSubstituteName()) {
-            fontSubstituteName = fi->getSubstituteName()->c_str();
+            fontSubstituteName = QString::fromUtf8(fi->getSubstituteName()->c_str());
         }
         isEmbedded = fi->getEmbedded();
         isSubset = fi->getSubset();

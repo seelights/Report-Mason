@@ -300,7 +300,7 @@ LinkDestination::LinkDestination(const LinkDestinationData &data) : d(new LinkDe
 
 LinkDestination::LinkDestination(const QString &description) : d(new LinkDestinationPrivate)
 {
-    const QStringList tokens = description.split(';');
+    const QStringList tokens = description.split(QChar::fromLatin1(';'));
     if (tokens.size() >= 10) {
         d->kind = static_cast<Kind>(tokens.at(0).toInt());
         d->pageNum = tokens.at(1).toInt();
@@ -372,15 +372,15 @@ bool LinkDestination::isChangeZoom() const
 QString LinkDestination::toString() const
 {
     QString s = QString::number((qint8)d->kind);
-    s += ";" + QString::number(d->pageNum);
-    s += ";" + QString::number(d->left);
-    s += ";" + QString::number(d->bottom);
-    s += ";" + QString::number(d->right);
-    s += ";" + QString::number(d->top);
-    s += ";" + QString::number(d->zoom);
-    s += ";" + QString::number((qint8)d->changeLeft);
-    s += ";" + QString::number((qint8)d->changeTop);
-    s += ";" + QString::number((qint8)d->changeZoom);
+    s += QString::fromLatin1(";") + QString::number(d->pageNum);
+    s += QString::fromLatin1(";") + QString::number(d->left);
+    s += QString::fromLatin1(";") + QString::number(d->bottom);
+    s += QString::fromLatin1(";") + QString::number(d->right);
+    s += QString::fromLatin1(";") + QString::number(d->top);
+    s += QString::fromLatin1(";") + QString::number(d->zoom);
+    s += QString::fromLatin1(";") + QString::number((qint8)d->changeLeft);
+    s += QString::fromLatin1(";") + QString::number((qint8)d->changeTop);
+    s += QString::fromLatin1(";") + QString::number((qint8)d->changeZoom);
     return s;
 }
 

@@ -1,0 +1,3 @@
+"C:\Program Files\CMake\bin\cmake.exe" -E rm -f CMakeFiles\cmTC_ee56b.dir/objects.a
+D:\mingw64\bin\ar.exe qc CMakeFiles\cmTC_ee56b.dir/objects.a @CMakeFiles\cmTC_ee56b.dir\objects1.rsp
+D:\Qt6\Tools\mingw1310_64\bin\gcc.exe  -v -Wl,-v -Wl,--whole-archive CMakeFiles\cmTC_ee56b.dir/objects.a -Wl,--no-whole-archive -o cmTC_ee56b.exe -Wl,--out-implib,libcmTC_ee56b.dll.a -Wl,--major-image-version,0,--minor-image-version,0

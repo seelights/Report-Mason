@@ -1017,18 +1017,18 @@ static CertificateInfoPrivate *createCertificateInfoPrivate(const X509Certificat
         certPriv->serial_number = QByteArray(certSerial.c_str(), certSerial.getLength());
 
         const X509CertificateInfo::EntityInfo &issuerInfo = ci->getIssuerInfo();
-        certPriv->issuer_info.common_name = issuerInfo.commonName.c_str();
-        certPriv->issuer_info.distinguished_name = issuerInfo.distinguishedName.c_str();
-        certPriv->issuer_info.email_address = issuerInfo.email.c_str();
-        certPriv->issuer_info.org_name = issuerInfo.organization.c_str();
+        certPriv->issuer_info.common_name = QString::fromUtf8(issuerInfo.commonName.c_str());
+        certPriv->issuer_info.distinguished_name = QString::fromUtf8(issuerInfo.distinguishedName.c_str());
+        certPriv->issuer_info.email_address = QString::fromUtf8(issuerInfo.email.c_str());
+        certPriv->issuer_info.org_name = QString::fromUtf8(issuerInfo.organization.c_str());
 
         const X509CertificateInfo::EntityInfo &subjectInfo = ci->getSubjectInfo();
-        certPriv->subject_info.common_name = subjectInfo.commonName.c_str();
-        certPriv->subject_info.distinguished_name = subjectInfo.distinguishedName.c_str();
-        certPriv->subject_info.email_address = subjectInfo.email.c_str();
-        certPriv->subject_info.org_name = subjectInfo.organization.c_str();
+        certPriv->subject_info.common_name = QString::fromUtf8(subjectInfo.commonName.c_str());
+        certPriv->subject_info.distinguished_name = QString::fromUtf8(subjectInfo.distinguishedName.c_str());
+        certPriv->subject_info.email_address = QString::fromUtf8(subjectInfo.email.c_str());
+        certPriv->subject_info.org_name = QString::fromUtf8(subjectInfo.organization.c_str());
 
-        certPriv->nick_name = ci->getNickName().c_str();
+        certPriv->nick_name = QString::fromUtf8(ci->getNickName().c_str());
 
         X509CertificateInfo::Validity certValidity = ci->getValidity();
         certPriv->validity_start = QDateTime::fromSecsSinceEpoch(certValidity.notBefore, Qt::UTC);

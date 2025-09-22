@@ -47,7 +47,7 @@
 #include <atomic>
 #include <cstdio>
 #include <vector>
-#include <span>
+#include "../span_compat.h" // Use custom span compatibility header
 
 #include "poppler-config.h"
 #include "poppler_private_export.h"
@@ -1059,75 +1059,7 @@ struct DCTHuffTable
     unsigned char sym[256]; // symbols
 };
 
-class DCTStream : public FilterStream
-{
-public:
-    DCTStream(Stream *strA, int colorXformA, Dict *dict, int recursion);
-    ~DCTStream() override;
-    StreamKind getKind() const override { return strDCT; }
-    void reset() override;
-    void close() override;
-    int getChar() override;
-    int lookChar() override;
-    GooString *getPSFilter(int psLevel, const char *indent) override;
-    bool isBinary(bool last = true) const override;
-
-    void unfilteredReset() override;
-
-private:
-    void dctReset(bool unfiltered);
-    bool progressive; // set if in progressive mode
-    bool interleaved; // set if in interleaved mode
-    int width, height; // image size
-    int mcuWidth, mcuHeight; // size of min coding unit, in data units
-    int bufWidth, bufHeight; // frameBuf size
-    DCTCompInfo compInfo[4]; // info for each component
-    DCTScanInfo scanInfo; // info for the current scan
-    int numComps; // number of components in image
-    int colorXform; // color transform: -1 = unspecified
-                    //                   0 = none
-                    //                   1 = YUV/YUVK -> RGB/CMYK
-    bool gotJFIFMarker; // set if APP0 JFIF marker was present
-    bool gotAdobeMarker; // set if APP14 Adobe marker was present
-    int restartInterval; // restart interval, in MCUs
-    unsigned short quantTables[4][64]; // quantization tables
-    int numQuantTables; // number of quantization tables
-    DCTHuffTable dcHuffTables[4]; // DC Huffman tables
-    DCTHuffTable acHuffTables[4]; // AC Huffman tables
-    int numDCHuffTables; // number of DC Huffman tables
-    int numACHuffTables; // number of AC Huffman tables
-    unsigned char *rowBuf[4][32]; // buffer for one MCU (non-progressive mode)
-    int *frameBuf[4]; // buffer for frame (progressive mode)
-    int comp, x, y, dy; // current position within image/MCU
-    int restartCtr; // MCUs left until restart
-    int restartMarker; // next restart marker
-    int eobRun; // number of EOBs left in the current run
-    int inputBuf; // input buffer for variable length codes
-    int inputBits; // number of valid bits in input buffer
-
-    void restart();
-    bool readMCURow();
-    void readScan();
-    bool readDataUnit(DCTHuffTable *dcHuffTable, DCTHuffTable *acHuffTable, int *prevDC, int data[64]);
-    bool readProgressiveDataUnit(DCTHuffTable *dcHuffTable, DCTHuffTable *acHuffTable, int *prevDC, int data[64]);
-    void decodeImage();
-    void transformDataUnit(unsigned short *quantTable, int dataIn[64], unsigned char dataOut[64]);
-    int readHuffSym(DCTHuffTable *table);
-    int readAmp(int size);
-    int readBit();
-    bool readHeader();
-    bool readBaselineSOF();
-    bool readProgressiveSOF();
-    bool readScanInfo();
-    bool readQuantTables();
-    bool readHuffmanTables();
-    bool readRestartInterval();
-    bool readJFIFMarker();
-    bool readAdobeMarker();
-    bool readTrailer();
-    int readMarker();
-    int read16();
-};
+// DCTStream class moved to DCTStream.h
 
 #endif
 

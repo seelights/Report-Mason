@@ -1,0 +1,3 @@
+D:/projects/ReportMason/poppler-24.08.0/build/CMakeFiles/CMakeScratch/TryCompile-zwggea/CMakeFiles/cmTC_ee56b.dir
+D:/projects/ReportMason/poppler-24.08.0/build/CMakeFiles/CMakeScratch/TryCompile-zwggea/CMakeFiles/edit_cache.dir
+D:/projects/ReportMason/poppler-24.08.0/build/CMakeFiles/CMakeScratch/TryCompile-zwggea/CMakeFiles/rebuild_cache.dir

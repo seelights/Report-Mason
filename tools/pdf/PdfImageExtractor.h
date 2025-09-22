@@ -1,7 +1,7 @@
 /*
  * @Author: seelights
  * @Date: 2025-09-15 19:05:00
- * @LastEditTime: 2025-09-17 18:30:40
+ * @LastEditTime: 2025-09-21 01:32:34
  * @LastEditors: seelights
  * @Description: PDF图片提取器
  * @FilePath: \ReportMason\tools\pdf\PdfImageExtractor.h
@@ -11,7 +11,7 @@
 #pragma once
 
 #include "../base/ImageExtractor.h"
-#include "poppler-qt6-simple.h" // 使用Qt6版本的Poppler
+#include "poppler-qt6.h" // 使用Qt6版本的Poppler
 #include <memory> // 用于std::unique_ptr
 
 /**

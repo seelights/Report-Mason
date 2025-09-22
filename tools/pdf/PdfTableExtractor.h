@@ -11,7 +11,7 @@
 #pragma once
 
 #include "../base/TableExtractor.h"
-#include "poppler-qt6-simple.h" // 使用Qt6版本的Poppler
+#include "poppler-qt6.h" // 使用Qt6版本的Poppler
 #include <memory> // 用于std::unique_ptr
 
 /**

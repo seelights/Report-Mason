@@ -23,10 +23,11 @@
 #include <climits>
 #include <string>
 #include <vector>
-#include <span>
 
 #include "CharTypes.h"
 #include "poppler_private_export.h"
+#include "../cpp17_compat.h"
+#include "../span_compat.h"
 
 // Magic bytes that mark the byte order in a UTF-16 unicode string (big-endian case)
 constexpr std::string_view unicodeByteOrderMark = "\xFE\xFF";
@@ -38,7 +39,7 @@ constexpr std::string_view unicodeByteOrderMarkLE = "\xFF\xFE";
 //   utf16      - utf16 bytes
 //   utf16_len  - number of UTF-16 characters
 //   returns number of UCS-4 characters
-std::vector<Unicode> UTF16toUCS4(std::span<Unicode> utf16);
+std::vector<Unicode> UTF16toUCS4(const std::span<Unicode>& utf16);
 
 // Convert a PDF Text String to UCS-4
 //   s          - PDF text string
@@ -55,13 +56,13 @@ inline bool UnicodeIsValid(Unicode ucs4)
 // check whether string starts with Big-Endian byte order mark
 inline bool hasUnicodeByteOrderMark(const std::string &s)
 {
-    return s.starts_with(unicodeByteOrderMark);
+    return std::starts_with(s, unicodeByteOrderMark);
 }
 
 // check whether string starts with Little-Endian byte order mark
 inline bool hasUnicodeByteOrderMarkLE(const std::string &s)
 {
-    return s.starts_with(unicodeByteOrderMarkLE);
+    return std::starts_with(s, unicodeByteOrderMarkLE);
 }
 
 // put big-endian unicode byte order mark at the beginning of a string
@@ -148,7 +149,7 @@ char POPPLER_PRIVATE_EXPORT *utf16ToUtf8(const uint16_t *utf16, int *len = nullp
 //              of length @out_len + 1, for each character in the ascii string giving the index
 //              of the corresponding character in the text of the line (thanks to this info
 //              being passed in @in_idx parameter).
-void POPPLER_PRIVATE_EXPORT unicodeToAscii7(std::span<Unicode> in, Unicode **ucs4_out, int *out_len, const int *in_idx, int **indices);
+void POPPLER_PRIVATE_EXPORT unicodeToAscii7(const std::span<Unicode>& in, Unicode **ucs4_out, int *out_len, const int *in_idx, int **indices);
 
 // Convert a PDF Text String to UTF-8
 //   textStr    - PDF text string

@@ -56,6 +56,8 @@
 //========================================================================
 
 #include <config.h>
+#include "string_utils.h"
+#include "../cpp17_compat.h"
 
 #include <algorithm>
 #include <cstring>

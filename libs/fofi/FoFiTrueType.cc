@@ -40,6 +40,7 @@
 #include <climits>
 #include <algorithm>
 #include <array>
+#include "span_compat.h"
 #include "goo/GooLikely.h"
 #include "goo/GooString.h"
 #include "goo/GooCheckedOps.h"
@@ -1231,10 +1232,10 @@ void FoFiTrueType::cvtSfnts(FoFiOutputFunc outputFunc, void *outputStream, const
         checksum = 0; // make gcc happy
         if (i == t42HeadTable) {
             length = 54;
-            checksum = computeTableChecksum(headData);
+            checksum = computeTableChecksum(std::span<unsigned char>(headData));
         } else if (i == t42LocaTable) {
             length = (nGlyphs + 1) * (locaFmt ? 4 : 2);
-            checksum = computeTableChecksum(locaData);
+            checksum = computeTableChecksum(std::span<unsigned char>(locaData));
         } else if (i == t42GlyfTable) {
             length = 0;
             checksum = 0;
@@ -1258,13 +1259,13 @@ void FoFiTrueType::cvtSfnts(FoFiOutputFunc outputFunc, void *outputStream, const
                 vheaTab[10] = advance / 256; // max advance height
                 vheaTab[11] = advance % 256;
                 length = vheaTab.size();
-                checksum = computeTableChecksum(vheaTab);
+                checksum = computeTableChecksum(std::span<unsigned char>(vheaTab));
             } else if (needVerticalMetrics && i == t42VmtxTable) {
                 length = 4 + (nGlyphs - 1) * 2;
                 vmtxTab.resize(length, 0);
                 vmtxTab[0] = advance / 256;
                 vmtxTab[1] = advance % 256;
-                checksum = computeTableChecksum(vmtxTab);
+                checksum = computeTableChecksum(std::span<unsigned char>(vmtxTab));
             } else if (t42Tables[i].required) {
                 //~ error(-1, "Embedded TrueType font is missing a required table ('%s')",
                 //~       t42Tables[i].tag);
@@ -1354,10 +1355,10 @@ void FoFiTrueType::cvtSfnts(FoFiOutputFunc outputFunc, void *outputStream, const
     // write the tables
     for (i = 0; i < nNewTables; ++i) {
         if (i == t42HeadTable) {
-            dumpString(headData, outputFunc, outputStream);
+            dumpString(std::span<unsigned char>(headData), outputFunc, outputStream);
         } else if (i == t42LocaTable) {
             length = (nGlyphs + 1) * (locaFmt ? 4 : 2);
-            dumpString(locaData, outputFunc, outputStream);
+            dumpString(std::span<unsigned char>(locaData), outputFunc, outputStream);
         } else if (i == t42GlyfTable) {
             glyfPos = tables[seekTable("glyf")].offset;
             for (j = 0; j < nGlyphs; ++j) {
@@ -1377,12 +1378,12 @@ void FoFiTrueType::cvtSfnts(FoFiOutputFunc outputFunc, void *outputStream, const
                         error(errSyntaxWarning, -1, "length bigger than vheaTab size");
                         length = sizeof(vheaTab);
                     }
-                    dumpString(vheaTab, outputFunc, outputStream);
+                    dumpString(std::span<unsigned char>(vheaTab), outputFunc, outputStream);
                 } else if (needVerticalMetrics && i == t42VmtxTable) {
                     if (unlikely(length > (int)vmtxTab.size())) {
                         error(errSyntaxWarning, -1, "length bigger than vmtxTab size");
                     }
-                    dumpString(vmtxTab, outputFunc, outputStream);
+                    dumpString(std::span<unsigned char>(vmtxTab), outputFunc, outputStream);
                 }
             }
         }

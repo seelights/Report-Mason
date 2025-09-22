@@ -71,6 +71,9 @@
 #define POPPLER_VERSION_MINOR 8
 #define POPPLER_VERSION_MICRO 0
 
+/* Data directory */
+#define POPPLER_DATADIR ""
+
 /* Default signature backend */
 #define DEFAULT_SIGNATURE_BACKEND "NSS3"
 
@@ -92,14 +95,14 @@
 #define HAVE_WIN32_CODECS 1
 #endif
 
-/* Optional libraries - disabled for now */
-#define HAVE_FT2BUILD_H 0
-#define HAVE_JPEGLIB_H 0
-#define HAVE_FREETYPE 0
-#define HAVE_JPEG 0
-#define HAVE_PNG 0
-#define HAVE_TIFF 0
-#define HAVE_OPENJPEG 0
+/* Optional libraries - enabled for full functionality */
+#define HAVE_FT2BUILD_H 1
+#define HAVE_JPEGLIB_H 1
+#define HAVE_FREETYPE 1
+#define HAVE_JPEG 1
+#define HAVE_PNG 1
+#define HAVE_TIFF 1
+#define HAVE_OPENJPEG 1
 
 /* Text output features */
 #define TEXTOUT_WORD_LIST 1

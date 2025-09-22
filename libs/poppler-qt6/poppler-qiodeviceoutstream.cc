@@ -25,6 +25,7 @@
 #include <QtCore/QIODevice>
 
 #include <cstdio>
+#include "../span_compat.h"
 
 namespace Poppler {
 
@@ -46,7 +47,7 @@ void QIODeviceOutStream::put(char c)
 
 size_t QIODeviceOutStream::write(std::span<unsigned char> data)
 {
-    return m_device->write(reinterpret_cast<const char *>(data.data()), data.size());
+    return m_device->write(reinterpret_cast<const char *>(data.begin()), data.size());
 }
 
 static int poppler_vasprintf(char **buf_ptr, const char *format, va_list ap) GCC_PRINTF_FORMAT(2, 0);

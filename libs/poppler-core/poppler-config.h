@@ -12,19 +12,19 @@
 #define POPPLER_VERSION_MINOR 8
 #define POPPLER_VERSION_MICRO 0
 
-// Feature detection - all optional libraries disabled
+// Feature detection - match config.h settings
 #undef HAVE_CAIRO
-#define HAVE_CAIRO 0
+#define HAVE_CAIRO 1
 #undef HAVE_FREETYPE
-#define HAVE_FREETYPE 0
+#define HAVE_FREETYPE 1
 #undef HAVE_OPENJPEG
-#define HAVE_OPENJPEG 0
+#define HAVE_OPENJPEG 1
 #undef HAVE_JPEG
-#define HAVE_JPEG 0
+#define HAVE_JPEG 1
 #undef HAVE_PNG
-#define HAVE_PNG 0
+#define HAVE_PNG 1
 #undef HAVE_TIFF
-#define HAVE_TIFF 0
+#define HAVE_TIFF 1
 #undef HAVE_NSS3
 #define HAVE_NSS3 0
 #undef HAVE_GPGME
@@ -32,9 +32,9 @@
 #undef HAVE_CURL
 #define HAVE_CURL 0
 #undef HAVE_FT2BUILD_H
-#define HAVE_FT2BUILD_H 0
+#define HAVE_FT2BUILD_H 1
 #undef HAVE_JPEGLIB_H
-#define HAVE_JPEGLIB_H 0
+#define HAVE_JPEGLIB_H 1
 
 // Platform specific
 #ifdef _WIN32

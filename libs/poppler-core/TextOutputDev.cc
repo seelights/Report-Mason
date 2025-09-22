@@ -70,6 +70,7 @@
 #include "goo/gmem.h"
 #include "goo/GooString.h"
 #include "poppler-config.h"
+#include "../span_compat.h"
 #include "Error.h"
 #include "GlobalParams.h"
 #include "UnicodeMap.h"

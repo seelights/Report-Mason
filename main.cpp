@@ -31,6 +31,7 @@
 #include "src/widgetTest/AiTestWidget.h" // 暂时注释掉AI模块
 #include "src/widgetTest/DocxToXmlTestWidget.h"
 #include "src/widgetTest/PdfToXmlTestWidget.h"
+#include "src/widgetTest/LosslessConverterTestWidget.h"
 
 int main(int argc, char* argv[])
 {
@@ -80,6 +81,10 @@ int main(int argc, char* argv[])
     // 添加PDF无损转换测试标签页
     PdfToXmlTestWidget* pdfToXmlTestWidget = new PdfToXmlTestWidget();
     tabWidget->addTab(pdfToXmlTestWidget, QStringLiteral("PDF无损转换"));
+
+    // 添加无损转换器测试标签页
+    LosslessConverterTestWidget* losslessTestWidget = new LosslessConverterTestWidget();
+    tabWidget->addTab(losslessTestWidget, QStringLiteral("无损转换器测试"));
 
     // 设置布局
     QVBoxLayout* layout = new QVBoxLayout(&mainWindow);

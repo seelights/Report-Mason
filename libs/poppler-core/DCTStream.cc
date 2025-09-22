@@ -108,7 +108,7 @@ void DCTStream::init()
 
     cinfo.err = &err.pub;
     if (!setjmp(err.setjmp_buffer)) {
-        jpeg_create_decompress(&cinfo);
+        jpeg_CreateDecompress(&cinfo, JPEG_LIB_VERSION, sizeof(jpeg_decompress_struct));
         cinfo.src = (jpeg_source_mgr *)&src;
     }
     row_buffer = nullptr;

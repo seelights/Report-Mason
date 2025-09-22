@@ -56,6 +56,7 @@
 
 #include <config.h>
 #include <cfloat>
+#include <memory>
 #include <poppler-config.h>
 #include <PDFDoc.h>
 #include <Catalog.h>
@@ -228,7 +229,7 @@ std::unique_ptr<Link> PageData::convertLinkActionToLink(::LinkAction *a, Documen
     case actionLaunch: {
         LinkLaunch *e = (LinkLaunch *)a;
         const GooString *p = e->getParams();
-        popplerLink = std::make_unique<LinkExecute>(linkArea, e->getFileName()->c_str(), p ? p->c_str() : nullptr);
+        popplerLink = std::make_unique<LinkExecute>(linkArea, QString::fromUtf8(e->getFileName()->c_str()), p ? QString::fromUtf8(p->c_str()) : QString());
     } break;
 
     case actionNamed: {
@@ -268,7 +269,7 @@ std::unique_ptr<Link> PageData::convertLinkActionToLink(::LinkAction *a, Documen
     } break;
 
     case actionURI: {
-        popplerLink = std::make_unique<LinkBrowse>(linkArea, ((LinkURI *)a)->getURI().c_str());
+        popplerLink = std::make_unique<LinkBrowse>(linkArea, QString::fromUtf8(((LinkURI *)a)->getURI().c_str()));
     } break;
 
     case actionSound: {

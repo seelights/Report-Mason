@@ -34,8 +34,8 @@
 #include <QtCore/QDebug>
 #include <QtCore/QtAlgorithms>
 
-#include "poppler/OptionalContent.h"
-#include "poppler/Link.h"
+#include "../poppler-core/OptionalContent.h"
+#include "../poppler-core/Link.h"
 
 namespace Poppler {
 RadioButtonGroup::RadioButtonGroup(OptContentModelPrivate *ocModel, Array *rbarray)
@@ -169,10 +169,10 @@ OptContentModelPrivate::OptContentModelPrivate(OptContentModel *qq, OCGs *optCon
             addChild(m_rootNode, i.value());
         }
     } else {
-        parseOrderArray(m_rootNode, optContent->getOrderArray());
+        parseOrderArray(m_rootNode, const_cast<Array*>(optContent->getOrderArray()));
     }
 
-    parseRBGroupsArray(optContent->getRBGroupsArray());
+    parseRBGroupsArray(const_cast<Array*>(optContent->getRBGroupsArray()));
 }
 
 OptContentModelPrivate::~OptContentModelPrivate()

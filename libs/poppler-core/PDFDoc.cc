@@ -83,6 +83,7 @@
 #include "goo/GooString.h"
 #include "goo/gfile.h"
 #include "poppler-config.h"
+#include "../span_compat.h"
 #include "GlobalParams.h"
 #include "Page.h"
 #include "Catalog.h"

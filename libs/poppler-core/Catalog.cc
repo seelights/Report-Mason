@@ -119,7 +119,7 @@ Catalog::Catalog(PDFDoc *docA)
     // get the Optional Content dictionary
     Object optContentProps = catDict.dictLookup("OCProperties");
     if (optContentProps.isDict()) {
-        optContent = new OCGs(&optContentProps, xref);
+        optContent = new OCGs(optContentProps, xref);
         if (!optContent->isOk()) {
             delete optContent;
             optContent = nullptr;

@@ -11,6 +11,11 @@
 # define POPPLER_QT6_EXPORT
 #endif
 
+// Deprecation macro for Qt6
+#ifndef POPPLER_QT6_DEPRECATED
+# define POPPLER_QT6_DEPRECATED
+#endif
+
 // Version macros
 #define POPPLER_VERSION_MAJOR 24
 #define POPPLER_VERSION_MINOR 8

@@ -1069,6 +1069,7 @@ public:
     ~SplashOutFontFileID() override;
 
     bool matches(SplashFontFileID *id) override { return ((SplashOutFontFileID *)id)->r == r; }
+    int hash() override { return r.num + r.gen; }
 
 private:
     Ref r;
@@ -1852,7 +1853,7 @@ void SplashOutputDev::doUpdateFont(GfxState *state)
     // check the font file cache
 reload:
     delete id;
-    if (fontsrc && !fontsrc->isFile) {
+    if (fontsrc && !fontsrc->isFile()) {
         fontsrc->unref();
         fontsrc = nullptr;
     }
@@ -1891,7 +1892,7 @@ reload:
         if (!fileName.empty()) {
             fontsrc->setFile(fileName);
         } else {
-            fontsrc->setBuf(std::move(tmpBuf.value()));
+            fontsrc->setBuf(tmpBuf.value().data(), tmpBuf.value().size());
         }
 
         // load the font file
@@ -1929,7 +1930,7 @@ reload:
             if (!fileName.empty()) {
                 ff = FoFiTrueType::load(fileName.c_str());
             } else {
-                ff = FoFiTrueType::make(fontsrc->buf.data(), fontsrc->buf.size());
+                ff = FoFiTrueType::make(fontsrc->getBuf(), fontsrc->getBufLen());
             }
             int *codeToGID;
             const int n = ff ? 256 : 0;
@@ -2003,7 +2004,7 @@ reload:
                 if (!fileName.empty()) {
                     ff = FoFiTrueType::load(fileName.c_str());
                 } else {
-                    ff = FoFiTrueType::make(fontsrc->buf.data(), fontsrc->buf.size());
+                    ff = FoFiTrueType::make(fontsrc->getBuf(), fontsrc->getBufLen());
                 }
                 if (!ff) {
                     error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
@@ -2078,7 +2079,7 @@ reload:
         font = fontEngine->getFont(fontFile, mat, splash->getMatrix());
     }
 
-    if (fontsrc && !fontsrc->isFile) {
+    if (fontsrc && !fontsrc->isFile()) {
         fontsrc->unref();
     }
     return;
@@ -2086,7 +2087,7 @@ reload:
 err2:
     delete id;
 err1:
-    if (fontsrc && !fontsrc->isFile) {
+    if (fontsrc && !fontsrc->isFile()) {
         fontsrc->unref();
     }
     return;

@@ -91,7 +91,7 @@ QByteArray EmbeddedFile::checksum() const
 QString EmbeddedFile::mimeType() const
 {
     const GooString *goo = m_embeddedFile->embFile() ? m_embeddedFile->embFile()->mimeType() : nullptr;
-    return goo ? QString(goo->c_str()) : QString();
+    return goo ? QString::fromUtf8(goo->c_str()) : QString();
 }
 
 QByteArray EmbeddedFile::data()

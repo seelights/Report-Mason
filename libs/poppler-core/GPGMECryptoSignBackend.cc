@@ -379,7 +379,7 @@ void GpgSignatureVerification::validateCertificateAsync(std::chrono::system_cloc
         });
         return;
     }
-    std::string keyFP = fromCharPtr(signature->key().primaryFingerprint());
+    std::string keyFP = fromCharPtr(signature->key(true, false).primaryFingerprint());
     validationStatus = std::async([keyFP = std::move(keyFP), doneFunction, ocspRevocationCheck, useAIACertFetch]() {
         auto context = GpgME::Context::create(GpgME::CMS);
         context->setOffline((!ocspRevocationCheck) || useAIACertFetch);

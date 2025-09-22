@@ -332,7 +332,7 @@ public:
     {
         jpeg_decompress_struct info;
         JpegErrorManager errorManager;
-        info.err = jpeg_std_error(&errorManager.pub);
+        jpeg_std_error(&errorManager.pub);
         errorManager.pub.error_exit = jpegExitErrorHandler;
         if (setjmp(errorManager.setjmpBuffer)) {
             // The setjmp point.
@@ -341,7 +341,7 @@ public:
             return nullptr;
         }
 
-        jpeg_create_decompress(&info);
+        jpeg_CreateDecompress(&info, JPEG_LIB_VERSION, sizeof(jpeg_decompress_struct));
         // fileSize is guaranteed to be in the range 0..int max by the checks in embed()
         // jpeg_mem_src takes an unsigned long in the 3rd parameter
         jpeg_mem_src(&info, fileContent.get(), static_cast<unsigned long>(fileSize));

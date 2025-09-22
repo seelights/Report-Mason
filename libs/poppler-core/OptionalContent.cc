@@ -31,12 +31,12 @@
 
 //------------------------------------------------------------------------
 
-OCGs::OCGs(Object *ocgObject, XRef *xref) : m_xref(xref)
+OCGs::OCGs(const Object &ocgObject, XRef *xref) : m_xref(xref)
 {
     // we need to parse the dictionary here, and build optionalContentGroups
     ok = true;
 
-    Object ocgList = ocgObject->dictLookup("OCGs");
+    Object ocgList = ocgObject.dictLookup("OCGs");
     if (!ocgList.isArray()) {
         error(errSyntaxError, -1, "Expected the optional content group list, but wasn't able to find it, or it isn't an Array");
         ok = false;
@@ -60,7 +60,7 @@ OCGs::OCGs(Object *ocgObject, XRef *xref) : m_xref(xref)
         optionalContentGroups.emplace(ocgRef.getRef(), std::move(thisOptionalContentGroup));
     }
 
-    Object defaultOcgConfig = ocgObject->dictLookup("D");
+    Object defaultOcgConfig = ocgObject.dictLookup("D");
     if (!defaultOcgConfig.isDict()) {
         error(errSyntaxError, -1, "Expected the default config, but wasn't able to find it, or it isn't a Dictionary");
         ok = false;
@@ -119,13 +119,13 @@ bool OCGs::hasOCGs() const
     return !(optionalContentGroups.empty());
 }
 
-OptionalContentGroup *OCGs::findOcgByRef(const Ref ref)
+OptionalContentGroup *OCGs::findOcgByRef(const Ref ref) const
 {
     const auto ocg = optionalContentGroups.find(ref);
     return ocg != optionalContentGroups.end() ? ocg->second.get() : nullptr;
 }
 
-bool OCGs::optContentIsVisible(const Object *dictRef)
+bool OCGs::optContentIsVisible(const Object *dictRef) const
 {
     Dict *dict;
     bool result = true;
@@ -184,7 +184,7 @@ bool OCGs::optContentIsVisible(const Object *dictRef)
     return result;
 }
 
-bool OCGs::evalOCVisibilityExpr(const Object *expr, int recursion)
+bool OCGs::evalOCVisibilityExpr(const Object *expr, int recursion) const
 {
     OptionalContentGroup *ocg;
     bool ret;
@@ -231,7 +231,7 @@ bool OCGs::evalOCVisibilityExpr(const Object *expr, int recursion)
     return ret;
 }
 
-bool OCGs::allOn(Array *ocgArray)
+bool OCGs::allOn(Array *ocgArray) const
 {
     for (int i = 0; i < ocgArray->getLength(); ++i) {
         const Object &ocgItem = ocgArray->getNF(i);
@@ -245,7 +245,7 @@ bool OCGs::allOn(Array *ocgArray)
     return true;
 }
 
-bool OCGs::allOff(Array *ocgArray)
+bool OCGs::allOff(Array *ocgArray) const
 {
     for (int i = 0; i < ocgArray->getLength(); ++i) {
         const Object &ocgItem = ocgArray->getNF(i);
@@ -259,7 +259,7 @@ bool OCGs::allOff(Array *ocgArray)
     return true;
 }
 
-bool OCGs::anyOn(Array *ocgArray)
+bool OCGs::anyOn(Array *ocgArray) const
 {
     for (int i = 0; i < ocgArray->getLength(); ++i) {
         const Object &ocgItem = ocgArray->getNF(i);
@@ -273,7 +273,7 @@ bool OCGs::anyOn(Array *ocgArray)
     return false;
 }
 
-bool OCGs::anyOff(Array *ocgArray)
+bool OCGs::anyOff(Array *ocgArray) const
 {
     for (int i = 0; i < ocgArray->getLength(); ++i) {
         const Object &ocgItem = ocgArray->getNF(i);
@@ -295,7 +295,7 @@ OptionalContentGroup::OptionalContentGroup(Dict *ocgDict) : m_name(nullptr)
     if (!ocgName.isString()) {
         error(errSyntaxWarning, -1, "Expected the name of the OCG, but wasn't able to find it, or it isn't a String");
     } else {
-        m_name = new GooString(ocgName.getString());
+        m_name = std::make_unique<GooString>(ocgName.getString());
     }
 
     viewState = printState = ocUsageUnset;
@@ -326,15 +326,10 @@ OptionalContentGroup::OptionalContentGroup(Dict *ocgDict) : m_name(nullptr)
     }
 }
 
-OptionalContentGroup::OptionalContentGroup(GooString *label)
-{
-    m_name = label;
-    m_state = On;
-}
 
 const GooString *OptionalContentGroup::getName() const
 {
-    return m_name;
+    return m_name.get();
 }
 
 void OptionalContentGroup::setRef(const Ref ref)
@@ -349,5 +344,5 @@ Ref OptionalContentGroup::getRef() const
 
 OptionalContentGroup::~OptionalContentGroup()
 {
-    delete m_name;
+    // m_name is a unique_ptr, so it handles its own cleanup
 }

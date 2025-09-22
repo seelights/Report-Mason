@@ -1,4 +1,13 @@
 /*
+ * @Author: seelights
+ * @Date: 2025-09-17 10:16:06
+ * @LastEditTime: 2025-09-21 10:00:30
+ * @LastEditors: seelights
+ * @Description: 
+ * @FilePath: \ReportMason\libs\poppler-qt6\poppler-version.cpp
+ * Copyright (c) 2025 by seelights@git.cn, All Rights Reserved.
+ */
+/*
  * Copyright (C) 2009-2010, Pino Toscano <pino@kde.org>
  * Copyright (C) 2018, Albert Astals Cid <aacid@kde.org>
  *
@@ -18,6 +27,8 @@
  */
 
 #include "poppler-version.h"
+#include <QString>
+#include "poppler-qt6.h"
 
 QString Poppler::Version::string()
 {

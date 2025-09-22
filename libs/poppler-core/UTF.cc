@@ -37,10 +37,11 @@
 #include "UTF.h"
 #include "UnicodeMapFuncs.h"
 #include <algorithm>
+#include "../span_compat.h"
 
 #include <config.h>
 
-std::vector<Unicode> UTF16toUCS4(std::span<Unicode> utf16)
+std::vector<Unicode> UTF16toUCS4(const std::span<Unicode>& utf16)
 {
     // count characters
     int len = 0;
@@ -111,7 +112,7 @@ std::vector<Unicode> TextStringToUCS4(const std::string &textStr)
                     utf16.push_back((s[3 + i * 2] & 0xff) << 8 | (s[2 + i * 2] & 0xff));
                 }
             }
-            return UTF16toUCS4(utf16);
+            return UTF16toUCS4(std::asSpan(utf16));
 
         } else {
             return {};
@@ -480,7 +481,7 @@ char *utf16ToUtf8(const uint16_t *utf16, int *len)
     return utf8;
 }
 
-void unicodeToAscii7(std::span<Unicode> in, Unicode **ucs4_out, int *out_len, const int *in_idx, int **indices)
+void unicodeToAscii7(const std::span<Unicode>& in, Unicode **ucs4_out, int *out_len, const int *in_idx, int **indices)
 {
     const UnicodeMap *uMap = globalParams->getUnicodeMap("ASCII7");
     int *idx = nullptr;

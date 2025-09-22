@@ -419,16 +419,15 @@ QString PdfTableExtractor::extractTextFromPageWithPoppler(int pageNumber) const
 
     try {
         // 获取页面（Qt版本）
-        Poppler::Page* page = m_popplerDocument->page(pageNumber);
+        std::unique_ptr<Poppler::Page> page = m_popplerDocument->page(pageNumber);
         if (!page) {
             return QString();
         }
 
         // 提取文本（Qt版本）
-        QString text = page->text(QRect());
+        QString text = page->text(QRectF());
 
-        // 清理页面对象
-        delete page;
+        // 页面对象会自动清理（unique_ptr）
 
         return text;
     } catch (const std::exception& e) {

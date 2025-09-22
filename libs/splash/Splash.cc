@@ -56,6 +56,13 @@
 #include "Splash.h"
 #include <algorithm>
 
+//------------------------------------------------------------------------
+// Color mode component counts
+//------------------------------------------------------------------------
+
+// number of components in each color mode
+int splashColorModeNComps[] = { 1, 1, 3, 3, 4, 4, 4 + SPOT_NCOMPS };
+
 // the MSVC math.h doesn't define this
 #ifndef M_PI
 #    define M_PI 3.14159265358979323846
@@ -217,7 +224,7 @@ inline void Splash::pipeInit(SplashPipe *pipe, int x, int y, SplashPattern *patt
     // source color
     if (pattern) {
         if (pattern->isStatic()) {
-            pattern->getColor(x, y, pipe->cSrcVal);
+            pattern->getColor(x, y, pipe->cSrc);
         } else {
             pipe->pattern = pattern;
         }
@@ -310,23 +317,23 @@ void Splash::pipeRun(SplashPipe *pipe)
 
     // dynamic pattern
     if (pipe->pattern) {
-        if (!pipe->pattern->getColor(pipe->x, pipe->y, pipe->cSrcVal)) {
+        if (!pipe->pattern->getColor(pipe->x, pipe->y, pipe->cSrc)) {
             pipeIncX(pipe);
             return;
         }
         if (bitmap->mode == splashModeCMYK8 || bitmap->mode == splashModeDeviceN8) {
             if (state->fillOverprint && state->overprintMode && pipe->pattern->isCMYK()) {
                 unsigned int overprintMask = 15;
-                if (pipe->cSrcVal[0] == 0) {
+                if (pipe->cSrc[0] == 0) {
                     overprintMask &= ~1;
                 }
-                if (pipe->cSrcVal[1] == 0) {
+                if (pipe->cSrc[1] == 0) {
                     overprintMask &= ~2;
                 }
-                if (pipe->cSrcVal[2] == 0) {
+                if (pipe->cSrc[2] == 0) {
                     overprintMask &= ~4;
                 }
-                if (pipe->cSrcVal[3] == 0) {
+                if (pipe->cSrc[3] == 0) {
                     overprintMask &= ~8;
                 }
                 state->overprintMask = overprintMask;
@@ -372,16 +379,16 @@ void Splash::pipeRun(SplashPipe *pipe)
             break;
         case splashModeCMYK8:
             if (state->overprintMask & 1) {
-                pipe->destColorPtr[0] = (state->overprintAdditive) ? std::min<int>(pipe->destColorPtr[0] + state->cmykTransferC[pipe->cSrc[0]], 255) : state->cmykTransferC[pipe->cSrc[0]];
+                pipe->destColorPtr[0] = (state->overprintAdditive) ? std::min<int>(static_cast<int>(pipe->destColorPtr[0]) + static_cast<int>(state->cmykTransferC[pipe->cSrc[0]]), 255) : static_cast<int>(state->cmykTransferC[pipe->cSrc[0]]);
             }
             if (state->overprintMask & 2) {
-                pipe->destColorPtr[1] = (state->overprintAdditive) ? std::min<int>(pipe->destColorPtr[1] + state->cmykTransferM[pipe->cSrc[1]], 255) : state->cmykTransferM[pipe->cSrc[1]];
+                pipe->destColorPtr[1] = (state->overprintAdditive) ? std::min<int>(static_cast<int>(pipe->destColorPtr[1]) + static_cast<int>(state->cmykTransferM[pipe->cSrc[1]]), 255) : static_cast<int>(state->cmykTransferM[pipe->cSrc[1]]);
             }
             if (state->overprintMask & 4) {
-                pipe->destColorPtr[2] = (state->overprintAdditive) ? std::min<int>(pipe->destColorPtr[2] + state->cmykTransferY[pipe->cSrc[2]], 255) : state->cmykTransferY[pipe->cSrc[2]];
+                pipe->destColorPtr[2] = (state->overprintAdditive) ? std::min<int>(static_cast<int>(pipe->destColorPtr[2]) + static_cast<int>(state->cmykTransferY[pipe->cSrc[2]]), 255) : static_cast<int>(state->cmykTransferY[pipe->cSrc[2]]);
             }
             if (state->overprintMask & 8) {
-                pipe->destColorPtr[3] = (state->overprintAdditive) ? std::min<int>(pipe->destColorPtr[3] + state->cmykTransferK[pipe->cSrc[3]], 255) : state->cmykTransferK[pipe->cSrc[3]];
+                pipe->destColorPtr[3] = (state->overprintAdditive) ? std::min<int>(static_cast<int>(pipe->destColorPtr[3]) + static_cast<int>(state->cmykTransferK[pipe->cSrc[3]]), 255) : static_cast<int>(state->cmykTransferK[pipe->cSrc[3]]);
             }
             pipe->destColorPtr += 4;
             break;
@@ -824,16 +831,16 @@ void Splash::pipeRunSimpleCMYK8(SplashPipe *pipe)
 {
     //----- write destination pixel
     if (state->overprintMask & 1) {
-        pipe->destColorPtr[0] = (state->overprintAdditive) ? std::min<int>(pipe->destColorPtr[0] + state->cmykTransferC[pipe->cSrc[0]], 255) : state->cmykTransferC[pipe->cSrc[0]];
+        pipe->destColorPtr[0] = (state->overprintAdditive) ? std::min<int>(static_cast<int>(pipe->destColorPtr[0]) + static_cast<int>(state->cmykTransferC[pipe->cSrc[0]]), 255) : static_cast<int>(state->cmykTransferC[pipe->cSrc[0]]);
     }
     if (state->overprintMask & 2) {
-        pipe->destColorPtr[1] = (state->overprintAdditive) ? std::min<int>(pipe->destColorPtr[1] + state->cmykTransferM[pipe->cSrc[1]], 255) : state->cmykTransferM[pipe->cSrc[1]];
+        pipe->destColorPtr[1] = (state->overprintAdditive) ? std::min<int>(static_cast<int>(pipe->destColorPtr[1]) + static_cast<int>(state->cmykTransferM[pipe->cSrc[1]]), 255) : static_cast<int>(state->cmykTransferM[pipe->cSrc[1]]);
     }
     if (state->overprintMask & 4) {
-        pipe->destColorPtr[2] = (state->overprintAdditive) ? std::min<int>(pipe->destColorPtr[2] + state->cmykTransferY[pipe->cSrc[2]], 255) : state->cmykTransferY[pipe->cSrc[2]];
+        pipe->destColorPtr[2] = (state->overprintAdditive) ? std::min<int>(static_cast<int>(pipe->destColorPtr[2]) + static_cast<int>(state->cmykTransferY[pipe->cSrc[2]]), 255) : static_cast<int>(state->cmykTransferY[pipe->cSrc[2]]);
     }
     if (state->overprintMask & 8) {
-        pipe->destColorPtr[3] = (state->overprintAdditive) ? std::min<int>(pipe->destColorPtr[3] + state->cmykTransferK[pipe->cSrc[3]], 255) : state->cmykTransferK[pipe->cSrc[3]];
+        pipe->destColorPtr[3] = (state->overprintAdditive) ? std::min<int>(static_cast<int>(pipe->destColorPtr[3]) + static_cast<int>(state->cmykTransferK[pipe->cSrc[3]]), 255) : static_cast<int>(state->cmykTransferK[pipe->cSrc[3]]);
     }
     pipe->destColorPtr += 4;
     *pipe->destAlphaPtr++ = 255;
@@ -1893,7 +1900,7 @@ SplashError Splash::stroke(SplashPath *path)
         dumpPath(path);
     }
     opClipRes = splashClipAllOutside;
-    if (path->length == 0) {
+    if (path->getLength() == 0) {
         return splashErrEmptyPath;
     }
     path2 = flattenPath(path, state->matrix, state->flatness);
@@ -1901,7 +1908,7 @@ SplashError Splash::stroke(SplashPath *path)
         dPath = makeDashedPath(path2);
         delete path2;
         path2 = dPath;
-        if (path2->length == 0) {
+        if (path2->getLength() == 0) {
             delete path2;
             return splashErrEmptyPath;
         }
@@ -2050,20 +2057,20 @@ SplashPath *Splash::flattenPath(SplashPath *path, SplashCoord *matrix, SplashCoo
     fPath = new SplashPath();
     flatness2 = flatness * flatness;
     i = 0;
-    while (i < path->length) {
-        flag = path->flags[i];
+    while (i < path->getLength()) {
+        flag = path->getFlags()[i];
         if (flag & splashPathFirst) {
-            fPath->moveTo(path->pts[i].x, path->pts[i].y);
+            fPath->moveTo(path->getPts()[i].x, path->getPts()[i].y);
             ++i;
         } else {
             if (flag & splashPathCurve) {
-                flattenCurve(path->pts[i - 1].x, path->pts[i - 1].y, path->pts[i].x, path->pts[i].y, path->pts[i + 1].x, path->pts[i + 1].y, path->pts[i + 2].x, path->pts[i + 2].y, matrix, flatness2, fPath);
+                flattenCurve(path->getPts()[i - 1].x, path->getPts()[i - 1].y, path->getPts()[i].x, path->getPts()[i].y, path->getPts()[i + 1].x, path->getPts()[i + 1].y, path->getPts()[i + 2].x, path->getPts()[i + 2].y, matrix, flatness2, fPath);
                 i += 3;
             } else {
-                fPath->lineTo(path->pts[i].x, path->pts[i].y);
+                fPath->lineTo(path->getPts()[i].x, path->getPts()[i].y);
                 ++i;
             }
-            if (path->flags[i - 1] & splashPathClosed) {
+            if (path->getFlags()[i - 1] & splashPathClosed) {
                 fPath->close();
             }
         }
@@ -2196,10 +2203,10 @@ SplashPath *Splash::makeDashedPath(SplashPath *path)
 
     // process each subpath
     i = 0;
-    while (i < path->length) {
+    while (i < path->getLength()) {
 
         // find the end of the subpath
-        for (j = i; j < path->length - 1 && !(path->flags[j] & splashPathLast); ++j) {
+        for (j = i; j < path->getLength() - 1 && !(path->getFlags()[j] & splashPathLast); ++j) {
             ;
         }
 
@@ -2213,10 +2220,10 @@ SplashPath *Splash::makeDashedPath(SplashPath *path)
         for (k = i; k < j; ++k) {
 
             // grab the segment
-            x0 = path->pts[k].x;
-            y0 = path->pts[k].y;
-            x1 = path->pts[k + 1].x;
-            y1 = path->pts[k + 1].y;
+            x0 = path->getPts()[k].x;
+            y0 = path->getPts()[k].y;
+            x1 = path->getPts()[k + 1].x;
+            y1 = path->getPts()[k + 1].y;
             segLen = splashDist(x0, y0, x1, y1);
 
             // process the segment
@@ -2263,14 +2270,14 @@ SplashPath *Splash::makeDashedPath(SplashPath *path)
         i = j + 1;
     }
 
-    if (dPath->length == 0) {
+    if (dPath->getLength() == 0) {
         bool allSame = true;
-        for (i = 0; allSame && i < path->length - 1; ++i) {
-            allSame = path->pts[i].x == path->pts[i + 1].x && path->pts[i].y == path->pts[i + 1].y;
+        for (i = 0; allSame && i < path->getLength() - 1; ++i) {
+            allSame = path->getPts()[i].x == path->getPts()[i + 1].x && path->getPts()[i].y == path->getPts()[i + 1].y;
         }
         if (allSame) {
-            x0 = path->pts[0].x;
-            y0 = path->pts[0].y;
+            x0 = path->getPts()[0].x;
+            y0 = path->getPts()[0].y;
             dPath->moveTo(x0, y0);
             dPath->lineTo(x0, y0);
         }
@@ -2294,8 +2301,8 @@ inline void Splash::getBBoxFP(SplashPath *path, SplashCoord *xMinA, SplashCoord 
 
     // make compiler happy:
     xMinFP = xMaxFP = yMinFP = yMaxFP = 0;
-    for (int i = 0; i < path->length; ++i) {
-        transform(state->matrix, path->pts[i].x, path->pts[i].y, &tx, &ty);
+    for (int i = 0; i < path->getLength(); ++i) {
+        transform(state->matrix, path->getPts()[i].x, path->getPts()[i].y, &tx, &ty);
         if (i == 0) {
             xMinFP = xMaxFP = tx;
             yMinFP = yMaxFP = ty;
@@ -2329,7 +2336,7 @@ SplashError Splash::fillWithPattern(SplashPath *path, bool eo, SplashPattern *pa
     bool adjustLine = false;
     int linePosI = 0;
 
-    if (path->length == 0) {
+    if (path->getLength() == 0) {
         return splashErrEmptyPath;
     }
     if (pathAllOutside(path)) {
@@ -2340,14 +2347,14 @@ SplashError Splash::fillWithPattern(SplashPath *path, bool eo, SplashPattern *pa
     // add stroke adjustment hints for filled rectangles -- this only
     // applies to paths that consist of a single subpath
     // (this appears to match Acrobat's behavior)
-    if (state->strokeAdjust && !path->hints) {
+    if (state->strokeAdjust && !path->getHints()) {
         int n;
         n = path->getLength();
-        if (n == 4 && !(path->flags[0] & splashPathClosed) && !(path->flags[1] & splashPathLast) && !(path->flags[2] & splashPathLast)) {
+        if (n == 4 && !(path->getFlags()[0] & splashPathClosed) && !(path->getFlags()[1] & splashPathLast) && !(path->getFlags()[2] & splashPathLast)) {
             path->close(true);
             path->addStrokeAdjustHint(0, 2, 0, 4);
             path->addStrokeAdjustHint(1, 3, 0, 4);
-        } else if (n == 5 && (path->flags[0] & splashPathClosed) && !(path->flags[1] & splashPathLast) && !(path->flags[2] & splashPathLast) && !(path->flags[3] & splashPathLast)) {
+        } else if (n == 5 && (path->getFlags()[0] & splashPathClosed) && !(path->getFlags()[1] & splashPathLast) && !(path->getFlags()[2] & splashPathLast) && !(path->getFlags()[3] & splashPathLast)) {
             path->addStrokeAdjustHint(0, 2, 0, 4);
             path->addStrokeAdjustHint(1, 3, 0, 4);
         }
@@ -2460,18 +2467,18 @@ bool Splash::pathAllOutside(SplashPath *path)
     int xMinI, yMinI, xMaxI, yMaxI;
     int i;
 
-    xMin1 = xMax1 = path->pts[0].x;
-    yMin1 = yMax1 = path->pts[0].y;
-    for (i = 1; i < path->length; ++i) {
-        if (path->pts[i].x < xMin1) {
-            xMin1 = path->pts[i].x;
-        } else if (path->pts[i].x > xMax1) {
-            xMax1 = path->pts[i].x;
+    xMin1 = xMax1 = path->getPts()[0].x;
+    yMin1 = yMax1 = path->getPts()[0].y;
+    for (i = 1; i < path->getLength(); ++i) {
+        if (path->getPts()[i].x < xMin1) {
+            xMin1 = path->getPts()[i].x;
+        } else if (path->getPts()[i].x > xMax1) {
+            xMax1 = path->getPts()[i].x;
         }
-        if (path->pts[i].y < yMin1) {
-            yMin1 = path->pts[i].y;
-        } else if (path->pts[i].y > yMax1) {
-            yMax1 = path->pts[i].y;
+        if (path->getPts()[i].y < yMin1) {
+            yMin1 = path->getPts()[i].y;
+        } else if (path->getPts()[i].y > yMax1) {
+            yMax1 = path->getPts()[i].y;
         }
     }
 
@@ -2526,7 +2533,7 @@ SplashError Splash::xorFill(SplashPath *path, bool eo)
     SplashClipResult clipRes, clipRes2;
     SplashBlendFunc origBlendFunc;
 
-    if (path->length == 0) {
+    if (path->getLength() == 0) {
         return splashErrEmptyPath;
     }
     SplashXPath xPath(path, state->matrix, state->flatness, true);
@@ -2584,9 +2591,9 @@ SplashError Splash::fillChar(SplashCoord x, SplashCoord y, int c, SplashFont *fo
     }
     transform(state->matrix, x, y, &xt, &yt);
     x0 = splashFloor(xt);
-    xFrac = splashFloor((xt - x0) * splashFontFraction);
+    xFrac = splashFloor((xt - x0) * splashFontFractionScale);
     y0 = splashFloor(yt);
-    yFrac = splashFloor((yt - y0) * splashFontFraction);
+    yFrac = splashFloor((yt - y0) * splashFontFractionScale);
     if (!font->getGlyph(c, xFrac, yFrac, &glyph, x0, y0, state->clip, &clipRes)) {
         return splashErrNoGlyph;
     }
@@ -2631,7 +2638,7 @@ void Splash::fillGlyph2(int x0, int y0, SplashGlyphBitmap *glyph, bool noClip)
     int xShift = 0;
 
     if (yStart < 0) {
-        p += (glyph->aa ? glyph->w : splashCeil(glyph->w / 8.0)) * -yStart; // move p to the beginning of the first painted row
+        p += (glyph->aa ? glyph->w : (int)splashCeil(glyph->w / 8.0)) * -yStart; // move p to the beginning of the first painted row
         yyLimit += yStart;
         yStart = 0;
     }
@@ -5972,7 +5979,7 @@ SplashPath *Splash::makeStrokePath(SplashPath *path, SplashCoord w, bool flatten
 
     pathOut = new SplashPath();
 
-    if (path->length == 0) {
+    if (path->getLength() == 0) {
         return pathOut;
     }
 
@@ -5982,7 +5989,7 @@ SplashPath *Splash::makeStrokePath(SplashPath *path, SplashCoord w, bool flatten
             dashPath = makeDashedPath(pathIn);
             delete pathIn;
             pathIn = dashPath;
-            if (pathIn->length == 0) {
+            if (pathIn->getLength() == 0) {
                 delete pathIn;
                 return pathOut;
             }
@@ -5998,129 +6005,129 @@ SplashPath *Splash::makeStrokePath(SplashPath *path, SplashCoord w, bool flatten
     leftFirst = rightFirst = firstPt = 0; // make gcc happy
 
     i0 = 0;
-    for (i1 = i0; !(pathIn->flags[i1] & splashPathLast) && i1 + 1 < pathIn->length && pathIn->pts[i1 + 1].x == pathIn->pts[i1].x && pathIn->pts[i1 + 1].y == pathIn->pts[i1].y; ++i1) {
+    for (i1 = i0; !(pathIn->getFlags()[i1] & splashPathLast) && i1 + 1 < pathIn->getLength() && pathIn->getPts()[i1 + 1].x == pathIn->getPts()[i1].x && pathIn->getPts()[i1 + 1].y == pathIn->getPts()[i1].y; ++i1) {
         ;
     }
 
-    while (i1 < pathIn->length) {
-        if ((first = pathIn->flags[i0] & splashPathFirst)) {
+    while (i1 < pathIn->getLength()) {
+        if ((first = pathIn->getFlags()[i0] & splashPathFirst)) {
             subpathStart0 = i0;
             subpathStart1 = i1;
             seg = 0;
-            closed = pathIn->flags[i0] & splashPathClosed;
+            closed = pathIn->getFlags()[i0] & splashPathClosed;
         }
         j0 = i1 + 1;
-        if (j0 < pathIn->length) {
-            for (j1 = j0; !(pathIn->flags[j1] & splashPathLast) && j1 + 1 < pathIn->length && pathIn->pts[j1 + 1].x == pathIn->pts[j1].x && pathIn->pts[j1 + 1].y == pathIn->pts[j1].y; ++j1) {
+        if (j0 < pathIn->getLength()) {
+            for (j1 = j0; !(pathIn->getFlags()[j1] & splashPathLast) && j1 + 1 < pathIn->getLength() && pathIn->getPts()[j1 + 1].x == pathIn->getPts()[j1].x && pathIn->getPts()[j1 + 1].y == pathIn->getPts()[j1].y; ++j1) {
                 ;
             }
         } else {
             j1 = j0;
         }
-        if (pathIn->flags[i1] & splashPathLast) {
+        if (pathIn->getFlags()[i1] & splashPathLast) {
             if (first && state->lineCap == splashLineCapRound) {
                 // special case: zero-length subpath with round line caps -->
                 // draw a circle
-                pathOut->moveTo(pathIn->pts[i0].x + (SplashCoord)0.5 * w, pathIn->pts[i0].y);
-                pathOut->curveTo(pathIn->pts[i0].x + (SplashCoord)0.5 * w, pathIn->pts[i0].y + bezierCircle2 * w, pathIn->pts[i0].x + bezierCircle2 * w, pathIn->pts[i0].y + (SplashCoord)0.5 * w, pathIn->pts[i0].x,
-                                 pathIn->pts[i0].y + (SplashCoord)0.5 * w);
-                pathOut->curveTo(pathIn->pts[i0].x - bezierCircle2 * w, pathIn->pts[i0].y + (SplashCoord)0.5 * w, pathIn->pts[i0].x - (SplashCoord)0.5 * w, pathIn->pts[i0].y + bezierCircle2 * w, pathIn->pts[i0].x - (SplashCoord)0.5 * w,
-                                 pathIn->pts[i0].y);
-                pathOut->curveTo(pathIn->pts[i0].x - (SplashCoord)0.5 * w, pathIn->pts[i0].y - bezierCircle2 * w, pathIn->pts[i0].x - bezierCircle2 * w, pathIn->pts[i0].y - (SplashCoord)0.5 * w, pathIn->pts[i0].x,
-                                 pathIn->pts[i0].y - (SplashCoord)0.5 * w);
-                pathOut->curveTo(pathIn->pts[i0].x + bezierCircle2 * w, pathIn->pts[i0].y - (SplashCoord)0.5 * w, pathIn->pts[i0].x + (SplashCoord)0.5 * w, pathIn->pts[i0].y - bezierCircle2 * w, pathIn->pts[i0].x + (SplashCoord)0.5 * w,
-                                 pathIn->pts[i0].y);
+                pathOut->moveTo(pathIn->getPts()[i0].x + (SplashCoord)0.5 * w, pathIn->getPts()[i0].y);
+                pathOut->curveTo(pathIn->getPts()[i0].x + (SplashCoord)0.5 * w, pathIn->getPts()[i0].y + bezierCircle2 * w, pathIn->getPts()[i0].x + bezierCircle2 * w, pathIn->getPts()[i0].y + (SplashCoord)0.5 * w, pathIn->getPts()[i0].x,
+                                 pathIn->getPts()[i0].y + (SplashCoord)0.5 * w);
+                pathOut->curveTo(pathIn->getPts()[i0].x - bezierCircle2 * w, pathIn->getPts()[i0].y + (SplashCoord)0.5 * w, pathIn->getPts()[i0].x - (SplashCoord)0.5 * w, pathIn->getPts()[i0].y + bezierCircle2 * w, pathIn->getPts()[i0].x - (SplashCoord)0.5 * w,
+                                 pathIn->getPts()[i0].y);
+                pathOut->curveTo(pathIn->getPts()[i0].x - (SplashCoord)0.5 * w, pathIn->getPts()[i0].y - bezierCircle2 * w, pathIn->getPts()[i0].x - bezierCircle2 * w, pathIn->getPts()[i0].y - (SplashCoord)0.5 * w, pathIn->getPts()[i0].x,
+                                 pathIn->getPts()[i0].y - (SplashCoord)0.5 * w);
+                pathOut->curveTo(pathIn->getPts()[i0].x + bezierCircle2 * w, pathIn->getPts()[i0].y - (SplashCoord)0.5 * w, pathIn->getPts()[i0].x + (SplashCoord)0.5 * w, pathIn->getPts()[i0].y - bezierCircle2 * w, pathIn->getPts()[i0].x + (SplashCoord)0.5 * w,
+                                 pathIn->getPts()[i0].y);
                 pathOut->close();
             }
             i0 = j0;
             i1 = j1;
             continue;
         }
-        last = pathIn->flags[j1] & splashPathLast;
+        last = pathIn->getFlags()[j1] & splashPathLast;
         if (last) {
             k0 = subpathStart1 + 1;
         } else {
             k0 = j1 + 1;
         }
-        for (k1 = k0; !(pathIn->flags[k1] & splashPathLast) && k1 + 1 < pathIn->length && pathIn->pts[k1 + 1].x == pathIn->pts[k1].x && pathIn->pts[k1 + 1].y == pathIn->pts[k1].y; ++k1) {
+        for (k1 = k0; !(pathIn->getFlags()[k1] & splashPathLast) && k1 + 1 < pathIn->getLength() && pathIn->getPts()[k1 + 1].x == pathIn->getPts()[k1].x && pathIn->getPts()[k1 + 1].y == pathIn->getPts()[k1].y; ++k1) {
             ;
         }
 
         // compute the deltas for segment (i1, j0)
-        d = (SplashCoord)1 / splashDist(pathIn->pts[i1].x, pathIn->pts[i1].y, pathIn->pts[j0].x, pathIn->pts[j0].y);
-        dx = d * (pathIn->pts[j0].x - pathIn->pts[i1].x);
-        dy = d * (pathIn->pts[j0].y - pathIn->pts[i1].y);
+        d = (SplashCoord)1 / splashDist(pathIn->getPts()[i1].x, pathIn->getPts()[i1].y, pathIn->getPts()[j0].x, pathIn->getPts()[j0].y);
+        dx = d * (pathIn->getPts()[j0].x - pathIn->getPts()[i1].x);
+        dy = d * (pathIn->getPts()[j0].y - pathIn->getPts()[i1].y);
         wdx = (SplashCoord)0.5 * w * dx;
         wdy = (SplashCoord)0.5 * w * dy;
 
         // draw the start cap
-        if (pathOut->moveTo(pathIn->pts[i0].x - wdy, pathIn->pts[i0].y + wdx) != splashOk) {
+        if (pathOut->moveTo(pathIn->getPts()[i0].x - wdy, pathIn->getPts()[i0].y + wdx) != splashOk) {
             break;
         }
         if (i0 == subpathStart0) {
-            firstPt = pathOut->length - 1;
+            firstPt = pathOut->getLength() - 1;
         }
         if (first && !closed) {
             switch (state->lineCap) {
             case splashLineCapButt:
-                pathOut->lineTo(pathIn->pts[i0].x + wdy, pathIn->pts[i0].y - wdx);
+                pathOut->lineTo(pathIn->getPts()[i0].x + wdy, pathIn->getPts()[i0].y - wdx);
                 break;
             case splashLineCapRound:
-                pathOut->curveTo(pathIn->pts[i0].x - wdy - bezierCircle * wdx, pathIn->pts[i0].y + wdx - bezierCircle * wdy, pathIn->pts[i0].x - wdx - bezierCircle * wdy, pathIn->pts[i0].y - wdy + bezierCircle * wdx,
-                                 pathIn->pts[i0].x - wdx, pathIn->pts[i0].y - wdy);
-                pathOut->curveTo(pathIn->pts[i0].x - wdx + bezierCircle * wdy, pathIn->pts[i0].y - wdy - bezierCircle * wdx, pathIn->pts[i0].x + wdy - bezierCircle * wdx, pathIn->pts[i0].y - wdx - bezierCircle * wdy,
-                                 pathIn->pts[i0].x + wdy, pathIn->pts[i0].y - wdx);
+                pathOut->curveTo(pathIn->getPts()[i0].x - wdy - bezierCircle * wdx, pathIn->getPts()[i0].y + wdx - bezierCircle * wdy, pathIn->getPts()[i0].x - wdx - bezierCircle * wdy, pathIn->getPts()[i0].y - wdy + bezierCircle * wdx,
+                                 pathIn->getPts()[i0].x - wdx, pathIn->getPts()[i0].y - wdy);
+                pathOut->curveTo(pathIn->getPts()[i0].x - wdx + bezierCircle * wdy, pathIn->getPts()[i0].y - wdy - bezierCircle * wdx, pathIn->getPts()[i0].x + wdy - bezierCircle * wdx, pathIn->getPts()[i0].y - wdx - bezierCircle * wdy,
+                                 pathIn->getPts()[i0].x + wdy, pathIn->getPts()[i0].y - wdx);
                 break;
             case splashLineCapProjecting:
-                pathOut->lineTo(pathIn->pts[i0].x - wdx - wdy, pathIn->pts[i0].y + wdx - wdy);
-                pathOut->lineTo(pathIn->pts[i0].x - wdx + wdy, pathIn->pts[i0].y - wdx - wdy);
-                pathOut->lineTo(pathIn->pts[i0].x + wdy, pathIn->pts[i0].y - wdx);
+                pathOut->lineTo(pathIn->getPts()[i0].x - wdx - wdy, pathIn->getPts()[i0].y + wdx - wdy);
+                pathOut->lineTo(pathIn->getPts()[i0].x - wdx + wdy, pathIn->getPts()[i0].y - wdx - wdy);
+                pathOut->lineTo(pathIn->getPts()[i0].x + wdy, pathIn->getPts()[i0].y - wdx);
                 break;
             }
         } else {
-            pathOut->lineTo(pathIn->pts[i0].x + wdy, pathIn->pts[i0].y - wdx);
+            pathOut->lineTo(pathIn->getPts()[i0].x + wdy, pathIn->getPts()[i0].y - wdx);
         }
 
         // draw the left side of the segment rectangle
-        left2 = pathOut->length - 1;
-        pathOut->lineTo(pathIn->pts[j0].x + wdy, pathIn->pts[j0].y - wdx);
+        left2 = pathOut->getLength() - 1;
+        pathOut->lineTo(pathIn->getPts()[j0].x + wdy, pathIn->getPts()[j0].y - wdx);
 
         // draw the end cap
         if (last && !closed) {
             switch (state->lineCap) {
             case splashLineCapButt:
-                pathOut->lineTo(pathIn->pts[j0].x - wdy, pathIn->pts[j0].y + wdx);
+                pathOut->lineTo(pathIn->getPts()[j0].x - wdy, pathIn->getPts()[j0].y + wdx);
                 break;
             case splashLineCapRound:
-                pathOut->curveTo(pathIn->pts[j0].x + wdy + bezierCircle * wdx, pathIn->pts[j0].y - wdx + bezierCircle * wdy, pathIn->pts[j0].x + wdx + bezierCircle * wdy, pathIn->pts[j0].y + wdy - bezierCircle * wdx,
-                                 pathIn->pts[j0].x + wdx, pathIn->pts[j0].y + wdy);
-                pathOut->curveTo(pathIn->pts[j0].x + wdx - bezierCircle * wdy, pathIn->pts[j0].y + wdy + bezierCircle * wdx, pathIn->pts[j0].x - wdy + bezierCircle * wdx, pathIn->pts[j0].y + wdx + bezierCircle * wdy,
-                                 pathIn->pts[j0].x - wdy, pathIn->pts[j0].y + wdx);
+                pathOut->curveTo(pathIn->getPts()[j0].x + wdy + bezierCircle * wdx, pathIn->getPts()[j0].y - wdx + bezierCircle * wdy, pathIn->getPts()[j0].x + wdx + bezierCircle * wdy, pathIn->getPts()[j0].y + wdy - bezierCircle * wdx,
+                                 pathIn->getPts()[j0].x + wdx, pathIn->getPts()[j0].y + wdy);
+                pathOut->curveTo(pathIn->getPts()[j0].x + wdx - bezierCircle * wdy, pathIn->getPts()[j0].y + wdy + bezierCircle * wdx, pathIn->getPts()[j0].x - wdy + bezierCircle * wdx, pathIn->getPts()[j0].y + wdx + bezierCircle * wdy,
+                                 pathIn->getPts()[j0].x - wdy, pathIn->getPts()[j0].y + wdx);
                 break;
             case splashLineCapProjecting:
-                pathOut->lineTo(pathIn->pts[j0].x + wdy + wdx, pathIn->pts[j0].y - wdx + wdy);
-                pathOut->lineTo(pathIn->pts[j0].x - wdy + wdx, pathIn->pts[j0].y + wdx + wdy);
-                pathOut->lineTo(pathIn->pts[j0].x - wdy, pathIn->pts[j0].y + wdx);
+                pathOut->lineTo(pathIn->getPts()[j0].x + wdy + wdx, pathIn->getPts()[j0].y - wdx + wdy);
+                pathOut->lineTo(pathIn->getPts()[j0].x - wdy + wdx, pathIn->getPts()[j0].y + wdx + wdy);
+                pathOut->lineTo(pathIn->getPts()[j0].x - wdy, pathIn->getPts()[j0].y + wdx);
                 break;
             }
         } else {
-            pathOut->lineTo(pathIn->pts[j0].x - wdy, pathIn->pts[j0].y + wdx);
+            pathOut->lineTo(pathIn->getPts()[j0].x - wdy, pathIn->getPts()[j0].y + wdx);
         }
 
         // draw the right side of the segment rectangle
         // (NB: if stroke adjustment is enabled, the closepath operation MUST
         // add a segment because this segment is used for a hint)
-        right2 = pathOut->length - 1;
-        pathOut->close(state->strokeAdjust);
+        right2 = pathOut->getLength() - 1;
+        pathOut->close(static_cast<bool>(state->strokeAdjust));
 
         // draw the join
-        join2 = pathOut->length;
+        join2 = pathOut->getLength();
         if (!last || closed) {
 
             // compute the deltas for segment (j1, k0)
-            d = (SplashCoord)1 / splashDist(pathIn->pts[j1].x, pathIn->pts[j1].y, pathIn->pts[k0].x, pathIn->pts[k0].y);
-            dxNext = d * (pathIn->pts[k0].x - pathIn->pts[j1].x);
-            dyNext = d * (pathIn->pts[k0].y - pathIn->pts[j1].y);
+            d = (SplashCoord)1 / splashDist(pathIn->getPts()[j1].x, pathIn->getPts()[j1].y, pathIn->getPts()[k0].x, pathIn->getPts()[k0].y);
+            dxNext = d * (pathIn->getPts()[k0].x - pathIn->getPts()[j1].x);
+            dyNext = d * (pathIn->getPts()[k0].y - pathIn->getPts()[j1].y);
             wdxNext = (SplashCoord)0.5 * w * dxNext;
             wdyNext = (SplashCoord)0.5 * w * dyNext;
 
@@ -6161,34 +6168,34 @@ SplashPath *Splash::makeStrokePath(SplashPath *path, SplashCoord w, bool flatten
                     if (dAngle < 0.501) {
                         // span angle is <= 90 degrees -> draw a single arc
                         SplashCoord kappa = dAngle * bezierCircle * w;
-                        SplashCoord cx1 = pathIn->pts[j0].x - wdy + kappa * dx;
-                        SplashCoord cy1 = pathIn->pts[j0].y + wdx + kappa * dy;
-                        SplashCoord cx2 = pathIn->pts[j0].x - wdyNext - kappa * dxNext;
-                        SplashCoord cy2 = pathIn->pts[j0].y + wdxNext - kappa * dyNext;
-                        pathOut->moveTo(pathIn->pts[j0].x, pathIn->pts[j0].y);
-                        pathOut->lineTo(pathIn->pts[j0].x - wdyNext, pathIn->pts[j0].y + wdxNext);
-                        pathOut->curveTo(cx2, cy2, cx1, cy1, pathIn->pts[j0].x - wdy, pathIn->pts[j0].y + wdx);
+                        SplashCoord cx1 = pathIn->getPts()[j0].x - wdy + kappa * dx;
+                        SplashCoord cy1 = pathIn->getPts()[j0].y + wdx + kappa * dy;
+                        SplashCoord cx2 = pathIn->getPts()[j0].x - wdyNext - kappa * dxNext;
+                        SplashCoord cy2 = pathIn->getPts()[j0].y + wdxNext - kappa * dyNext;
+                        pathOut->moveTo(pathIn->getPts()[j0].x, pathIn->getPts()[j0].y);
+                        pathOut->lineTo(pathIn->getPts()[j0].x - wdyNext, pathIn->getPts()[j0].y + wdxNext);
+                        pathOut->curveTo(cx2, cy2, cx1, cy1, pathIn->getPts()[j0].x - wdy, pathIn->getPts()[j0].y + wdx);
                     } else {
                         // span angle is > 90 degrees -> split into two arcs
                         SplashCoord dJoin = splashDist(-wdy, wdx, -wdyNext, wdxNext);
                         if (dJoin > 0) {
                             SplashCoord dxJoin = (-wdyNext + wdy) / dJoin;
                             SplashCoord dyJoin = (wdxNext - wdx) / dJoin;
-                            SplashCoord xc = pathIn->pts[j0].x + (SplashCoord)0.5 * w * cos((double)((SplashCoord)0.5 * (angle + angleNext)));
-                            SplashCoord yc = pathIn->pts[j0].y + (SplashCoord)0.5 * w * sin((double)((SplashCoord)0.5 * (angle + angleNext)));
+                            SplashCoord xc = pathIn->getPts()[j0].x + (SplashCoord)0.5 * w * cos((double)((SplashCoord)0.5 * (angle + angleNext)));
+                            SplashCoord yc = pathIn->getPts()[j0].y + (SplashCoord)0.5 * w * sin((double)((SplashCoord)0.5 * (angle + angleNext)));
                             SplashCoord kappa = dAngle * bezierCircle2 * w;
-                            SplashCoord cx1 = pathIn->pts[j0].x - wdy + kappa * dx;
-                            SplashCoord cy1 = pathIn->pts[j0].y + wdx + kappa * dy;
+                            SplashCoord cx1 = pathIn->getPts()[j0].x - wdy + kappa * dx;
+                            SplashCoord cy1 = pathIn->getPts()[j0].y + wdx + kappa * dy;
                             SplashCoord cx2 = xc - kappa * dxJoin;
                             SplashCoord cy2 = yc - kappa * dyJoin;
                             SplashCoord cx3 = xc + kappa * dxJoin;
                             SplashCoord cy3 = yc + kappa * dyJoin;
-                            SplashCoord cx4 = pathIn->pts[j0].x - wdyNext - kappa * dxNext;
-                            SplashCoord cy4 = pathIn->pts[j0].y + wdxNext - kappa * dyNext;
-                            pathOut->moveTo(pathIn->pts[j0].x, pathIn->pts[j0].y);
-                            pathOut->lineTo(pathIn->pts[j0].x - wdyNext, pathIn->pts[j0].y + wdxNext);
+                            SplashCoord cx4 = pathIn->getPts()[j0].x - wdyNext - kappa * dxNext;
+                            SplashCoord cy4 = pathIn->getPts()[j0].y + wdxNext - kappa * dyNext;
+                            pathOut->moveTo(pathIn->getPts()[j0].x, pathIn->getPts()[j0].y);
+                            pathOut->lineTo(pathIn->getPts()[j0].x - wdyNext, pathIn->getPts()[j0].y + wdxNext);
                             pathOut->curveTo(cx4, cy4, cx3, cy3, xc, yc);
-                            pathOut->curveTo(cx2, cy2, cx1, cy1, pathIn->pts[j0].x - wdy, pathIn->pts[j0].y + wdx);
+                            pathOut->curveTo(cx2, cy2, cx1, cy1, pathIn->getPts()[j0].x - wdy, pathIn->getPts()[j0].y + wdx);
                         }
                     }
 
@@ -6203,63 +6210,63 @@ SplashPath *Splash::makeStrokePath(SplashPath *path, SplashCoord w, bool flatten
                     if (dAngle < 0.501) {
                         // span angle is <= 90 degrees -> draw a single arc
                         SplashCoord kappa = dAngle * bezierCircle * w;
-                        SplashCoord cx1 = pathIn->pts[j0].x + wdy + kappa * dx;
-                        SplashCoord cy1 = pathIn->pts[j0].y - wdx + kappa * dy;
-                        SplashCoord cx2 = pathIn->pts[j0].x + wdyNext - kappa * dxNext;
-                        SplashCoord cy2 = pathIn->pts[j0].y - wdxNext - kappa * dyNext;
-                        pathOut->moveTo(pathIn->pts[j0].x, pathIn->pts[j0].y);
-                        pathOut->lineTo(pathIn->pts[j0].x + wdy, pathIn->pts[j0].y - wdx);
-                        pathOut->curveTo(cx1, cy1, cx2, cy2, pathIn->pts[j0].x + wdyNext, pathIn->pts[j0].y - wdxNext);
+                        SplashCoord cx1 = pathIn->getPts()[j0].x + wdy + kappa * dx;
+                        SplashCoord cy1 = pathIn->getPts()[j0].y - wdx + kappa * dy;
+                        SplashCoord cx2 = pathIn->getPts()[j0].x + wdyNext - kappa * dxNext;
+                        SplashCoord cy2 = pathIn->getPts()[j0].y - wdxNext - kappa * dyNext;
+                        pathOut->moveTo(pathIn->getPts()[j0].x, pathIn->getPts()[j0].y);
+                        pathOut->lineTo(pathIn->getPts()[j0].x + wdy, pathIn->getPts()[j0].y - wdx);
+                        pathOut->curveTo(cx1, cy1, cx2, cy2, pathIn->getPts()[j0].x + wdyNext, pathIn->getPts()[j0].y - wdxNext);
                     } else {
                         // span angle is > 90 degrees -> split into two arcs
                         SplashCoord dJoin = splashDist(wdy, -wdx, wdyNext, -wdxNext);
                         if (dJoin > 0) {
                             SplashCoord dxJoin = (wdyNext - wdy) / dJoin;
                             SplashCoord dyJoin = (-wdxNext + wdx) / dJoin;
-                            SplashCoord xc = pathIn->pts[j0].x + (SplashCoord)0.5 * w * cos((double)((SplashCoord)0.5 * (angle + angleNext)));
-                            SplashCoord yc = pathIn->pts[j0].y + (SplashCoord)0.5 * w * sin((double)((SplashCoord)0.5 * (angle + angleNext)));
+                            SplashCoord xc = pathIn->getPts()[j0].x + (SplashCoord)0.5 * w * cos((double)((SplashCoord)0.5 * (angle + angleNext)));
+                            SplashCoord yc = pathIn->getPts()[j0].y + (SplashCoord)0.5 * w * sin((double)((SplashCoord)0.5 * (angle + angleNext)));
                             SplashCoord kappa = dAngle * bezierCircle2 * w;
-                            SplashCoord cx1 = pathIn->pts[j0].x + wdy + kappa * dx;
-                            SplashCoord cy1 = pathIn->pts[j0].y - wdx + kappa * dy;
+                            SplashCoord cx1 = pathIn->getPts()[j0].x + wdy + kappa * dx;
+                            SplashCoord cy1 = pathIn->getPts()[j0].y - wdx + kappa * dy;
                             SplashCoord cx2 = xc - kappa * dxJoin;
                             SplashCoord cy2 = yc - kappa * dyJoin;
                             SplashCoord cx3 = xc + kappa * dxJoin;
                             SplashCoord cy3 = yc + kappa * dyJoin;
-                            SplashCoord cx4 = pathIn->pts[j0].x + wdyNext - kappa * dxNext;
-                            SplashCoord cy4 = pathIn->pts[j0].y - wdxNext - kappa * dyNext;
-                            pathOut->moveTo(pathIn->pts[j0].x, pathIn->pts[j0].y);
-                            pathOut->lineTo(pathIn->pts[j0].x + wdy, pathIn->pts[j0].y - wdx);
+                            SplashCoord cx4 = pathIn->getPts()[j0].x + wdyNext - kappa * dxNext;
+                            SplashCoord cy4 = pathIn->getPts()[j0].y - wdxNext - kappa * dyNext;
+                            pathOut->moveTo(pathIn->getPts()[j0].x, pathIn->getPts()[j0].y);
+                            pathOut->lineTo(pathIn->getPts()[j0].x + wdy, pathIn->getPts()[j0].y - wdx);
                             pathOut->curveTo(cx1, cy1, cx2, cy2, xc, yc);
-                            pathOut->curveTo(cx3, cy3, cx4, cy4, pathIn->pts[j0].x + wdyNext, pathIn->pts[j0].y - wdxNext);
+                            pathOut->curveTo(cx3, cy3, cx4, cy4, pathIn->getPts()[j0].x + wdyNext, pathIn->getPts()[j0].y - wdxNext);
                         }
                     }
                 }
 
             } else if (hasangle) {
-                pathOut->moveTo(pathIn->pts[j0].x, pathIn->pts[j0].y);
+                pathOut->moveTo(pathIn->getPts()[j0].x, pathIn->getPts()[j0].y);
 
                 // angle < 180
                 if (crossprod < 0) {
-                    pathOut->lineTo(pathIn->pts[j0].x - wdyNext, pathIn->pts[j0].y + wdxNext);
+                    pathOut->lineTo(pathIn->getPts()[j0].x - wdyNext, pathIn->getPts()[j0].y + wdxNext);
                     // miter join inside limit
                     if (state->lineJoin == splashLineJoinMiter && splashSqrt(miter) <= state->miterLimit) {
-                        pathOut->lineTo(pathIn->pts[j0].x - wdy + wdx * m, pathIn->pts[j0].y + wdx + wdy * m);
-                        pathOut->lineTo(pathIn->pts[j0].x - wdy, pathIn->pts[j0].y + wdx);
+                        pathOut->lineTo(pathIn->getPts()[j0].x - wdy + wdx * m, pathIn->getPts()[j0].y + wdx + wdy * m);
+                        pathOut->lineTo(pathIn->getPts()[j0].x - wdy, pathIn->getPts()[j0].y + wdx);
                         // bevel join or miter join outside limit
                     } else {
-                        pathOut->lineTo(pathIn->pts[j0].x - wdy, pathIn->pts[j0].y + wdx);
+                        pathOut->lineTo(pathIn->getPts()[j0].x - wdy, pathIn->getPts()[j0].y + wdx);
                     }
 
                     // angle >= 180
                 } else {
-                    pathOut->lineTo(pathIn->pts[j0].x + wdy, pathIn->pts[j0].y - wdx);
+                    pathOut->lineTo(pathIn->getPts()[j0].x + wdy, pathIn->getPts()[j0].y - wdx);
                     // miter join inside limit
                     if (state->lineJoin == splashLineJoinMiter && splashSqrt(miter) <= state->miterLimit) {
-                        pathOut->lineTo(pathIn->pts[j0].x + wdy + wdx * m, pathIn->pts[j0].y - wdx + wdy * m);
-                        pathOut->lineTo(pathIn->pts[j0].x + wdyNext, pathIn->pts[j0].y - wdxNext);
+                        pathOut->lineTo(pathIn->getPts()[j0].x + wdy + wdx * m, pathIn->getPts()[j0].y - wdx + wdy * m);
+                        pathOut->lineTo(pathIn->getPts()[j0].x + wdyNext, pathIn->getPts()[j0].y - wdxNext);
                         // bevel join or miter join outside limit
                     } else {
-                        pathOut->lineTo(pathIn->pts[j0].x + wdyNext, pathIn->pts[j0].y - wdxNext);
+                        pathOut->lineTo(pathIn->getPts()[j0].x + wdyNext, pathIn->getPts()[j0].y - wdxNext);
                     }
                 }
             }
@@ -6306,15 +6313,15 @@ SplashPath *Splash::makeStrokePath(SplashPath *path, SplashCoord w, bool flatten
             if (last) {
                 if (seg >= 2) {
                     pathOut->addStrokeAdjustHint(left1, right1, left0 + 1, right0);
-                    pathOut->addStrokeAdjustHint(left1, right1, join0, pathOut->length - 1);
+                    pathOut->addStrokeAdjustHint(left1, right1, join0, pathOut->getLength() - 1);
                 } else {
-                    pathOut->addStrokeAdjustHint(left1, right1, firstPt, pathOut->length - 1);
+                    pathOut->addStrokeAdjustHint(left1, right1, firstPt, pathOut->getLength() - 1);
                 }
                 if (closed) {
                     pathOut->addStrokeAdjustHint(left1, right1, firstPt, leftFirst);
                     pathOut->addStrokeAdjustHint(left1, right1, rightFirst + 1, rightFirst + 1);
                     pathOut->addStrokeAdjustHint(leftFirst, rightFirst, left1 + 1, right1);
-                    pathOut->addStrokeAdjustHint(leftFirst, rightFirst, join1, pathOut->length - 1);
+                    pathOut->addStrokeAdjustHint(leftFirst, rightFirst, join1, pathOut->getLength() - 1);
                 }
                 if (!closed && seg > 0) {
                     if (state->lineCap == splashLineCapButt) {
@@ -6342,9 +6349,9 @@ void Splash::dumpPath(SplashPath *path)
 {
     int i;
 
-    for (i = 0; i < path->length; ++i) {
-        printf("  %3d: x=%8.2f y=%8.2f%s%s%s%s\n", i, (double)path->pts[i].x, (double)path->pts[i].y, (path->flags[i] & splashPathFirst) ? " first" : "", (path->flags[i] & splashPathLast) ? " last" : "",
-               (path->flags[i] & splashPathClosed) ? " closed" : "", (path->flags[i] & splashPathCurve) ? " curve" : "");
+    for (i = 0; i < path->getLength(); ++i) {
+        printf("  %3d: x=%8.2f y=%8.2f%s%s%s%s\n", i, (double)path->getPts()[i].x, (double)path->getPts()[i].y, (path->getFlags()[i] & splashPathFirst) ? " first" : "", (path->getFlags()[i] & splashPathLast) ? " last" : "",
+               (path->getFlags()[i] & splashPathClosed) ? " closed" : "", (path->getFlags()[i] & splashPathCurve) ? " curve" : "");
     }
 }
 
@@ -6352,7 +6359,7 @@ void Splash::dumpXPath(SplashXPath *path)
 {
     int i;
 
-    for (i = 0; i < path->length; ++i) {
+    for (i = 0; i < path->getLength(); ++i) {
         printf("  %4d: x0=%8.2f y0=%8.2f x1=%8.2f y1=%8.2f %s%s%s\n", i, (double)path->segs[i].x0, (double)path->segs[i].y0, (double)path->segs[i].x1, (double)path->segs[i].y1, (path->segs[i].flags & splashXPathHoriz) ? "H" : " ",
                (path->segs[i].flags & splashXPathVert) ? "V" : " ", (path->segs[i].flags & splashXPathFlip) ? "P" : " ");
     }
@@ -6367,7 +6374,7 @@ SplashError Splash::shadedFill(SplashPath *path, bool hasBBox, SplashPattern *pa
     if (vectorAntialias && aaBuf == nullptr) { // should not happen, but to be secure
         return splashErrGeneric;
     }
-    if (path->length == 0) {
+    if (path->getLength() == 0) {
         return splashErrEmptyPath;
     }
     SplashXPath xPath(path, state->matrix, state->flatness, true);

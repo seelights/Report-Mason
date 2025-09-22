@@ -62,6 +62,7 @@
 #include "goo/gmem.h"
 #include "goo/gfile.h"
 #include "poppler-config.h"
+#include "../span_compat.h"
 #include "Error.h"
 #include "Object.h"
 #include "Lexer.h"
@@ -448,7 +449,7 @@ void FileOutStream::put(char c)
 
 size_t FileOutStream::write(std::span<unsigned char> data)
 {
-    return fwrite(data.data(), sizeof(decltype(data)::element_type), data.size(), f);
+    return fwrite(data.begin(), sizeof(unsigned char), data.size(), f);
 }
 
 void FileOutStream::printf(const char *format, ...)

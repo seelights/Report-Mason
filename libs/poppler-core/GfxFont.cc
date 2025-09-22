@@ -46,6 +46,7 @@
 //========================================================================
 
 #include <config.h>
+#include "../cpp17_compat.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -1253,7 +1254,7 @@ Gfx8BitFont::Gfx8BitFont(XRef *xref, const char *tagA, Ref idA, std::optional<st
 
     // pass 1: use the name-to-Unicode mapping table
     missing = hex = false;
-    bool isZapfDingbats = name && name->ends_with("ZapfDingbats");
+    bool isZapfDingbats = name && name->size() >= 12 && name->substr(name->size() - 12) == "ZapfDingbats";
     for (int code = 0; code < 256; ++code) {
         if ((charName = enc[code])) {
             if (isZapfDingbats) {

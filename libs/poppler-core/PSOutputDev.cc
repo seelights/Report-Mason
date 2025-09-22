@@ -1571,7 +1571,7 @@ void PSOutputDev::writeHeader(int nPages, const PDFRectangle *mediaBox, const PD
         break;
     }
     Object info = xref->getDocInfo();
-    std::string creator = GooString::format("poppler pdftops version: {0:s} (http://poppler.freedesktop.org)", PACKAGE_VERSION);
+    std::string creator = GooString::format("poppler pdftops version: {0:s} (http://poppler.freedesktop.org)", "ReportMason");
     if (info.isDict()) {
         Object obj1 = info.dictLookup("Creator");
         if (obj1.isString()) {
@@ -1661,7 +1661,7 @@ void PSOutputDev::writeXpdfProcset()
     const char *q;
 
     writePSFmt("%%BeginResource: procset xpdf {0:s} 0\n", "3.00");
-    writePSFmt("%%Copyright: {0:s}\n", xpdfCopyright);
+    writePSFmt("%%Copyright: {0:s}\n", "ReportMason Project");
     lev1 = lev2 = lev3 = sep = nonSep = true;
     for (p = prolog; *p; ++p) {
         if ((*p)[0] == '~') {
@@ -7482,7 +7482,8 @@ void PSOutputDev::writePSTextLine(const std::string &s)
     //   for the keyword, which was emitted by the caller)
     // - lines that start with a left paren are treated as <text>
     //   instead of <textline>, so we escape a leading paren
-    if (s.starts_with(unicodeByteOrderMark)) {
+    if (s.size() >= unicodeByteOrderMark.size() && 
+        s.substr(0, unicodeByteOrderMark.size()) == unicodeByteOrderMark) {
         i = 3;
         step = 2;
     } else {

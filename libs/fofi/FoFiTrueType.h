@@ -35,57 +35,9 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include "span_compat.h"
 #include "FoFiBase.h"
 #include "poppler_private_export.h"
-
-// C++17 compatibility for std::span
-#if __cplusplus >= 202002L
-#include <span>
-#else
-namespace std {
-    template<typename T>
-    class span {
-    public:
-        using element_type = T;
-        using value_type = std::remove_cv_t<T>;
-        using size_type = std::size_t;
-        using difference_type = std::ptrdiff_t;
-        using pointer = T*;
-        using const_pointer = const T*;
-        using reference = T&;
-        using const_reference = const T&;
-        using iterator = T*;
-        using const_iterator = const T*;
-        using reverse_iterator = std::reverse_iterator<iterator>;
-        using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-
-        constexpr span() noexcept : data_(nullptr), size_(0) {}
-        constexpr span(pointer ptr, size_type count) : data_(ptr), size_(count) {}
-        constexpr span(pointer first, pointer last) : data_(first), size_(last - first) {}
-
-        constexpr iterator begin() const noexcept { return data_; }
-        constexpr iterator end() const noexcept { return data_ + size_; }
-        constexpr const_iterator cbegin() const noexcept { return data_; }
-        constexpr const_iterator cend() const noexcept { return data_ + size_; }
-        constexpr reverse_iterator rbegin() const noexcept { return reverse_iterator(end()); }
-        constexpr reverse_iterator rend() const noexcept { return reverse_iterator(begin()); }
-        constexpr const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator(cend()); }
-        constexpr const_reverse_iterator crend() const noexcept { return const_reverse_iterator(cbegin()); }
-
-        constexpr reference front() const { return *data_; }
-        constexpr reference back() const { return *(data_ + size_ - 1); }
-        constexpr reference operator[](size_type idx) const { return data_[idx]; }
-        constexpr pointer data() const noexcept { return data_; }
-        constexpr size_type size() const noexcept { return size_; }
-        constexpr size_type size_bytes() const noexcept { return size_ * sizeof(T); }
-        constexpr bool empty() const noexcept { return size_ == 0; }
-
-    private:
-        pointer data_;
-        size_type size_;
-    };
-}
-#endif
 
 class GooString;
 struct TrueTypeTable;
