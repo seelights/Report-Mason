@@ -473,7 +473,7 @@ bool PdfChartExtractor::loadPopplerDocument(const QString& filePath)
         // 关闭之前的文档
         closePopplerDocument();
 
-        // 加载PDF文档（Qt版本）
+        // 加载PDF文档（Qt版本，支持NSS数字签名）
         m_popplerDocument = Poppler::Document::load(filePath);
         if (!m_popplerDocument) {
             setLastError(QS("无法加载PDF文档"));
@@ -484,6 +484,17 @@ bool PdfChartExtractor::loadPopplerDocument(const QString& filePath)
             setLastError(QS("PDF文档已加密"));
             m_popplerDocument.reset();
             return false;
+        }
+        
+        // 检查数字签名（NSS功能）
+        try {
+            auto signatures = m_popplerDocument->signatures();
+            if (!signatures.empty()) {
+                qDebug() << "PdfChartExtractor: PDF文档包含" << signatures.size() << "个数字签名";
+            }
+        } catch (const std::exception &e) {
+            qDebug() << "PdfChartExtractor: 检查签名时出错:" << e.what();
+            // 继续处理，不因为签名检查失败而停止
         }
 
         m_currentPdfPath = filePath;

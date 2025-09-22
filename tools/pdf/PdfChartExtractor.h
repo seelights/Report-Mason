@@ -12,6 +12,7 @@
 
 #include "../base/ChartExtractor.h"
 #include "poppler-qt6.h" // 使用Qt6版本的Poppler
+#include "poppler-form.h" // 支持NSS数字签名
 #include <memory> // 用于std::unique_ptr
 
 /**
