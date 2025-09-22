@@ -38,7 +38,8 @@ enum class DocumentElementType {
     FOOTER,         ///< 页脚
     PAGE_BREAK,     ///< 分页符
     LINE_BREAK,     ///< 换行符
-    PARAGRAPH       ///< 段落
+    PARAGRAPH,      ///< 段落
+    SIGNATURE       ///< 数字签名
 };
 
 /**

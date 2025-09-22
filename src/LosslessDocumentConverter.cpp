@@ -1,7 +1,7 @@
 /*
  * @Author: seelights
  * @Date: 2025-01-27 22:00:00
- * @LastEditTime: 2025-09-21 01:24:43
+ * @LastEditTime: 2025-09-22 15:03:31
  * @LastEditors: seelights
  * @Description: 无损文档转换器实现
  * @FilePath: \ReportMason\src\LosslessDocumentConverter.cpp
@@ -18,6 +18,10 @@
 #include <QXmlStreamWriter>
 #include <QDateTime>
 #include <QCryptographicHash>
+
+// Poppler头文件
+#include <poppler-qt6.h>
+#include <poppler-form.h>
 #include <QRegularExpression>
 #include <QDebug>
 #include <QBuffer>
@@ -311,19 +315,52 @@ LosslessDocumentConverter::ConvertStatus LosslessDocumentConverter::parsePdfDocu
     
     try {
         // 使用真正的Poppler API实现无损转换
+        // 启用NSS支持以处理数字签名
+        
         std::unique_ptr<Poppler::Document> document = Poppler::Document::load(filePath);
-        if (!document || document->isLocked()) {
+        if (!document) {
+            qDebug() << "Failed to load PDF document:" << filePath;
             return ConvertStatus::PARSE_ERROR;
         }
         
+        if (document->isLocked()) {
+            qDebug() << "PDF document is locked:" << filePath;
+            return ConvertStatus::PARSE_ERROR;
+        }
+        
+        // 检查PDF是否有数字签名
+        bool hasSignatures = false;
+        try {
+            // 尝试获取签名信息（如果NSS可用）
+            auto signatures = document->signatures();
+            hasSignatures = !signatures.empty();
+            if (hasSignatures) {
+                qDebug() << "PDF document has" << signatures.size() << "digital signatures";
+            }
+        } catch (const std::exception &e) {
+            qDebug() << "Error checking signatures:" << e.what();
+            // 继续处理，不因为签名检查失败而停止
+        }
+        
         int pageCount = document->numPages();
+        if (pageCount <= 0) {
+            qDebug() << "PDF document has no pages:" << filePath;
+            return ConvertStatus::PARSE_ERROR;
+        }
+        
+        qDebug() << "Processing PDF with" << pageCount << "pages";
         
         for (int pageIndex = 0; pageIndex < pageCount; ++pageIndex) {
-            std::unique_ptr<Poppler::Page> page = document->page(pageIndex);
-            if (!page) continue;
-            
-            // 获取页面尺寸
-            QSizeF pageSize = page->pageSizeF();
+            try {
+                std::unique_ptr<Poppler::Page> page = document->page(pageIndex);
+                if (!page) {
+                    qDebug() << "Failed to load page" << pageIndex;
+                    continue;
+                }
+                
+                // 获取页面尺寸
+                QSizeF pageSize = page->pageSizeF();
+                qDebug() << "Processing page" << pageIndex << "size:" << pageSize;
             
             // 1. 使用textList()方法提取精确的文本位置信息
             auto textBoxes = page->textList();
@@ -412,8 +449,31 @@ LosslessDocumentConverter::ConvertStatus LosslessDocumentConverter::parsePdfDocu
                 
                 elements.append(chartElement);
             }
+            
+            } catch (const std::exception &e) {
+                qDebug() << "Error processing page" << pageIndex << ":" << e.what();
+                continue; // 继续处理下一页
+            }
         }
         
+        // 如果有签名，添加签名信息到元素列表
+        if (hasSignatures) {
+            try {
+                DocumentElement signatureElement;
+                signatureElement.type = DocumentElementType::SIGNATURE;
+                signatureElement.id = generateElementId(DocumentElementType::SIGNATURE, m_elementCounter++);
+                signatureElement.content = QS("数字签名信息");
+                signatureElement.position.pageNumber = 0; // 签名通常是文档级别的
+                signatureElement.mimeType = QS("application/pdf-signature");
+                
+                elements.append(signatureElement);
+                qDebug() << "Added signature element to document";
+            } catch (const std::exception &e) {
+                qDebug() << "Error processing signatures:" << e.what();
+            }
+        }
+        
+        qDebug() << "PDF parsing completed, extracted" << elements.size() << "elements";
         return ConvertStatus::SUCCESS;
         
     } catch (const std::exception &e) {
@@ -469,6 +529,7 @@ QString LosslessDocumentConverter::generateElementId(DocumentElementType type, i
         case DocumentElementType::PAGE_BREAK: typeStr = QS("pagebreak"); break;
         case DocumentElementType::LINE_BREAK: typeStr = QS("linebreak"); break;
         case DocumentElementType::PARAGRAPH: typeStr = QS("para"); break;
+        case DocumentElementType::SIGNATURE: typeStr = QS("signature"); break;
     }
     
     return QString(QS("%1_%2_%3"))
