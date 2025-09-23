@@ -119,6 +119,14 @@ LIBS += -lpoppler-cpp
 LIBS += -lpoppler-qt6
 LIBS += -lpoppler-glib
 
+# 删除MuPDF第三方库链接
+# LIBS += -ljbig2dec
+# LIBS += -lgumbo
+# LIBS += -lmujs
+# LIBS += -lbrotlidec
+# LIBS += -llept
+# LIBS += -ltesseract
+
 TARGET = ReportMason
 TEMPLATE = app
 
@@ -152,11 +160,16 @@ INCLUDEPATH += libs/fofi
 INCLUDEPATH += libs/splash
 INCLUDEPATH += libs/poppler-core
 INCLUDEPATH += libs/poppler-qt6
+# 删除所有MuPDF相关头文件路径
 # Removed non-existent poppler-24.08.0 paths
 
 # 添加符号版本控制来解决ABI兼容性问题
 QMAKE_LFLAGS += -Wl,--allow-multiple-definition
 QMAKE_LFLAGS += -Wl,--no-undefined
+
+# 删除MuPDF SSE指令集支持
+# QMAKE_CXXFLAGS += -msse4.1
+# QMAKE_CFLAGS += -msse4.1
 QMAKE_LFLAGS += -Wl,--as-needed
 
 # 添加额外的链接选项
@@ -370,6 +383,9 @@ SOURCES += \
     tools/pdf/PdfImageExtractor.cpp \
     tools/pdf/PdfTableExtractor.cpp \
     tools/pdf/PdfChartExtractor.cpp \
+    # 删除MuPDF工具类
+    # tools/pdf/MuPDFImageExtractor.cpp \
+    # 删除所有MuPDF源文件
     tools/ai/OpenAIBase.cpp \
     tools/ai/OpenAINonStreamClient.cpp \
     tools/ai/OpenAIStreamClient.cpp \
@@ -461,6 +477,30 @@ HEADERS += \
     libs/poppler-qt6/poppler-optcontent.h
 
 # UI文件（已移除，使用代码创建界面）
+
+# Qt插件部署规则 - 自动复制Qt插件到输出目录
+win32 {
+    # 复制MSYS2 Qt插件到输出目录
+    platform_plugins.files = C:/msys64/mingw64/share/qt6/plugins/platforms/*
+    platform_plugins.path = $$DESTDIR/platforms
+    INSTALLS += platform_plugins
+    
+    # 复制Qt样式插件
+    style_plugins.files = C:/msys64/mingw64/share/qt6/plugins/styles/*
+    style_plugins.path = $$DESTDIR/styles
+    INSTALLS += style_plugins
+    
+    # 复制其他必要的Qt插件
+    imageformats_plugins.files = C:/msys64/mingw64/share/qt6/plugins/imageformats/*
+    imageformats_plugins.path = $$DESTDIR/imageformats
+    INSTALLS += imageformats_plugins
+    
+    # 设置运行时环境变量
+    QMAKE_POST_LINK += $$quote(set QT_PLUGIN_PATH=$$shell_path($$DESTDIR) && )$$quote(echo Qt plugins copied to $$shell_path($$DESTDIR))
+    
+    # 为Qt Creator运行配置设置环境变量
+    QMAKE_RPATHDIR += C:/msys64/mingw64/bin
+}
 
 # 默认规则
 qnx: target.path = /tmp/$${TARGET}/bin

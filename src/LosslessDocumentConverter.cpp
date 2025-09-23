@@ -314,163 +314,24 @@ LosslessDocumentConverter::ConvertStatus LosslessDocumentConverter::parsePdfDocu
     m_elementCounter = 0;
     
     try {
-        // 使用真正的Poppler API实现无损转换
-        // 启用NSS支持以处理数字签名
-        
-        std::unique_ptr<Poppler::Document> document = Poppler::Document::load(filePath);
+        // 1. 加载PDF文档
+        auto document = loadPdfDocument(filePath);
         if (!document) {
-            qDebug() << "Failed to load PDF document:" << filePath;
             return ConvertStatus::PARSE_ERROR;
         }
         
-        if (document->isLocked()) {
-            qDebug() << "PDF document is locked:" << filePath;
-            return ConvertStatus::PARSE_ERROR;
+        // 2. 检查数字签名
+        bool hasSignatures = checkDigitalSignatures(document.get());
+        
+        // 3. 处理所有页面
+        ConvertStatus pageStatus = processAllPages(document.get(), elements);
+        if (pageStatus != ConvertStatus::SUCCESS) {
+            return pageStatus;
         }
         
-        // 检查PDF是否有数字签名
-        bool hasSignatures = false;
-        try {
-            // 尝试获取签名信息（如果NSS可用）
-            auto signatures = document->signatures();
-            hasSignatures = !signatures.empty();
-            if (hasSignatures) {
-                qDebug() << "PDF document has" << signatures.size() << "digital signatures";
-            }
-        } catch (const std::exception &e) {
-            qDebug() << "Error checking signatures:" << e.what();
-            // 继续处理，不因为签名检查失败而停止
-        }
-        
-        int pageCount = document->numPages();
-        if (pageCount <= 0) {
-            qDebug() << "PDF document has no pages:" << filePath;
-            return ConvertStatus::PARSE_ERROR;
-        }
-        
-        qDebug() << "Processing PDF with" << pageCount << "pages";
-        
-        for (int pageIndex = 0; pageIndex < pageCount; ++pageIndex) {
-            try {
-                std::unique_ptr<Poppler::Page> page = document->page(pageIndex);
-                if (!page) {
-                    qDebug() << "Failed to load page" << pageIndex;
-                    continue;
-                }
-                
-                // 获取页面尺寸
-                QSizeF pageSize = page->pageSizeF();
-                qDebug() << "Processing page" << pageIndex << "size:" << pageSize;
-            
-            // 1. 使用textList()方法提取精确的文本位置信息
-            auto textBoxes = page->textList();
-            for (const auto &textBox : textBoxes) {
-                if (!textBox) continue;
-                
-                DocumentElement textElement;
-                textElement.type = DocumentElementType::TEXT;
-                textElement.id = generateElementId(DocumentElementType::TEXT, m_elementCounter++);
-                textElement.content = textBox->text();
-                textElement.position.pageNumber = pageIndex + 1;
-                
-                // 使用TextBox的精确边界框
-                QRectF bbox = textBox->boundingBox();
-                textElement.position.boundingBox = QRect(
-                    static_cast<int>(bbox.x()),
-                    static_cast<int>(bbox.y()),
-                    static_cast<int>(bbox.width()),
-                    static_cast<int>(bbox.height())
-                );
-                
-                // 设置格式信息
-                extractTextBoxFormatInfo(textBox.get(), textElement);
-                
-                elements.append(textElement);
-            }
-            
-            // 2. 渲染页面为高分辨率图像，用于检测图片区域
-            QImage pageImage = page->renderToImage(150.0, 150.0);
-            if (!pageImage.isNull()) {
-                // 分析图像，寻找非白色区域（可能的图片）
-                QList<QRect> imageRegions = detectImageRegions(pageImage);
-                
-                for (int i = 0; i < imageRegions.size(); ++i) {
-                    const QRect &region = imageRegions[i];
-                    
-                    DocumentElement imageElement;
-                    imageElement.type = DocumentElementType::IMAGE;
-                    imageElement.id = generateElementId(DocumentElementType::IMAGE, m_elementCounter++);
-                    imageElement.content = QS("图片区域_%1_%2x%3").arg(i + 1).arg(region.width()).arg(region.height());
-                    imageElement.position.pageNumber = pageIndex + 1;
-                    imageElement.position.boundingBox = region;
-                    imageElement.mimeType = QS("image/png");
-                    
-                    // 裁剪并保存图片数据
-                    QImage croppedImage = pageImage.copy(region);
-                    QBuffer buffer(&imageElement.binaryData);
-                    buffer.open(QIODevice::WriteOnly);
-                    croppedImage.save(&buffer, "PNG");
-                    
-                    elements.append(imageElement);
-                }
-            }
-            
-            // 3. 检测表格结构（通过文本布局分析）
-            QString pageText = page->text(QRect());
-            if (!pageText.isEmpty()) {
-                QList<QRect> tableRegions = detectTableRegions(pageText, static_cast<void*>(page.get()));
-                
-                for (int i = 0; i < tableRegions.size(); ++i) {
-                    const QRect &region = tableRegions[i];
-                    
-                    DocumentElement tableElement;
-                    tableElement.type = DocumentElementType::TABLE;
-                    tableElement.id = generateElementId(DocumentElementType::TABLE, m_elementCounter++);
-                    tableElement.content = QS("表格区域_%1_%2x%3").arg(i + 1).arg(region.width()).arg(region.height());
-                    tableElement.position.pageNumber = pageIndex + 1;
-                    tableElement.position.boundingBox = region;
-                    
-                    elements.append(tableElement);
-                }
-            }
-            
-            // 4. 检测图表区域（通过几何形状分析）
-            QList<QRect> chartRegions = detectChartRegions(static_cast<void*>(page.get()));
-            
-            for (int i = 0; i < chartRegions.size(); ++i) {
-                const QRect &region = chartRegions[i];
-                
-                DocumentElement chartElement;
-                chartElement.type = DocumentElementType::CHART;
-                chartElement.id = generateElementId(DocumentElementType::CHART, m_elementCounter++);
-                chartElement.content = QS("图表区域_%1_%2x%3").arg(i + 1).arg(region.width()).arg(region.height());
-                chartElement.position.pageNumber = pageIndex + 1;
-                chartElement.position.boundingBox = region;
-                
-                elements.append(chartElement);
-            }
-            
-            } catch (const std::exception &e) {
-                qDebug() << "Error processing page" << pageIndex << ":" << e.what();
-                continue; // 继续处理下一页
-            }
-        }
-        
-        // 如果有签名，添加签名信息到元素列表
+        // 4. 添加签名信息（如果有）
         if (hasSignatures) {
-            try {
-                DocumentElement signatureElement;
-                signatureElement.type = DocumentElementType::SIGNATURE;
-                signatureElement.id = generateElementId(DocumentElementType::SIGNATURE, m_elementCounter++);
-                signatureElement.content = QS("数字签名信息");
-                signatureElement.position.pageNumber = 0; // 签名通常是文档级别的
-                signatureElement.mimeType = QS("application/pdf-signature");
-                
-                elements.append(signatureElement);
-                qDebug() << "Added signature element to document";
-            } catch (const std::exception &e) {
-                qDebug() << "Error processing signatures:" << e.what();
-            }
+            addSignatureElements(elements);
         }
         
         qDebug() << "PDF parsing completed, extracted" << elements.size() << "elements";
@@ -480,6 +341,437 @@ LosslessDocumentConverter::ConvertStatus LosslessDocumentConverter::parsePdfDocu
         qDebug() << QS("PDF解析异常:") << e.what();
         return ConvertStatus::UNKNOWN_ERROR;
     }
+}
+
+std::unique_ptr<Poppler::Document> LosslessDocumentConverter::loadPdfDocument(const QString &filePath)
+{
+    try {
+        std::unique_ptr<Poppler::Document> document = Poppler::Document::load(filePath);
+        if (!document) {
+            qDebug() << "Failed to load PDF document:" << filePath;
+            return nullptr;
+        }
+        
+        if (document->isLocked()) {
+            qDebug() << "PDF document is locked:" << filePath;
+            return nullptr;
+        }
+        
+        int pageCount = document->numPages();
+        if (pageCount <= 0) {
+            qDebug() << "PDF document has no pages:" << filePath;
+            return nullptr;
+        }
+        
+        qDebug() << "Successfully loaded PDF with" << pageCount << "pages";
+        return document;
+        
+    } catch (const std::exception &e) {
+        qDebug() << "Error loading PDF document:" << e.what();
+        return nullptr;
+    }
+}
+
+bool LosslessDocumentConverter::checkDigitalSignatures(Poppler::Document *document)
+{
+    try {
+        auto signatures = document->signatures();
+        bool hasSignatures = !signatures.empty();
+        if (hasSignatures) {
+            qDebug() << "PDF document has" << signatures.size() << "digital signatures";
+        }
+        return hasSignatures;
+    } catch (const std::exception &e) {
+        qDebug() << "Error checking signatures:" << e.what();
+        return false;
+    }
+}
+
+LosslessDocumentConverter::ConvertStatus LosslessDocumentConverter::processAllPages(Poppler::Document *document, QList<DocumentElement> &elements)
+{
+    int pageCount = document->numPages();
+    
+    for (int pageIndex = 0; pageIndex < pageCount; ++pageIndex) {
+        try {
+            std::unique_ptr<Poppler::Page> page = document->page(pageIndex);
+            if (!page) {
+                qDebug() << "Failed to load page" << pageIndex;
+                continue;
+            }
+            
+            // 处理单个页面
+            ConvertStatus pageStatus = processSinglePage(page.get(), pageIndex, elements);
+            if (pageStatus != ConvertStatus::SUCCESS) {
+                qDebug() << "Error processing page" << pageIndex;
+                continue; // 继续处理下一页
+            }
+            
+        } catch (const std::exception &e) {
+            qDebug() << "Error processing page" << pageIndex << ":" << e.what();
+            continue; // 继续处理下一页
+        }
+    }
+    
+    return ConvertStatus::SUCCESS;
+}
+
+LosslessDocumentConverter::ConvertStatus LosslessDocumentConverter::processSinglePage(Poppler::Page *page, int pageIndex, QList<DocumentElement> &elements)
+{
+    try {
+        // 获取页面尺寸
+        QSizeF pageSize = page->pageSizeF();
+        qDebug() << "Processing page" << pageIndex << "size:" << pageSize;
+        
+        // 1. 提取文本元素（最安全，不会崩溃）
+        extractTextElements(page, pageIndex, elements);
+        
+        // 2. 尝试提取图片元素（可能崩溃，添加保护）
+        try {
+            extractImageElements(page, pageIndex, elements);
+        } catch (const std::exception &e) {
+            qDebug() << "Image extraction failed for page" << pageIndex << ":" << e.what();
+        } catch (...) {
+            qDebug() << "Image extraction failed for page" << pageIndex << "with unknown error";
+        }
+        
+        // 3. 提取表格元素（相对安全）
+        try {
+            extractTableElements(page, pageIndex, elements);
+        } catch (const std::exception &e) {
+            qDebug() << "Table extraction failed for page" << pageIndex << ":" << e.what();
+        } catch (...) {
+            qDebug() << "Table extraction failed for page" << pageIndex << "with unknown error";
+        }
+        
+        // 4. 尝试提取图表元素（可能崩溃，添加保护）
+        try {
+            extractChartElements(page, pageIndex, elements);
+        } catch (const std::exception &e) {
+            qDebug() << "Chart extraction failed for page" << pageIndex << ":" << e.what();
+        } catch (...) {
+            qDebug() << "Chart extraction failed for page" << pageIndex << "with unknown error";
+        }
+        
+        return ConvertStatus::SUCCESS;
+        
+    } catch (const std::exception &e) {
+        qDebug() << "Error processing page" << pageIndex << ":" << e.what();
+        return ConvertStatus::UNKNOWN_ERROR;
+    } catch (...) {
+        qDebug() << "Unknown error processing page" << pageIndex;
+        return ConvertStatus::UNKNOWN_ERROR;
+    }
+}
+
+void LosslessDocumentConverter::extractTextElements(Poppler::Page *page, int pageIndex, QList<DocumentElement> &elements)
+{
+    try {
+        // 使用textList()方法提取精确的文本位置信息
+        auto textBoxes = page->textList();
+        for (const auto &textBox : textBoxes) {
+            if (!textBox) continue;
+                
+            DocumentElement textElement;
+            textElement.type = DocumentElementType::TEXT;
+            textElement.id = generateElementId(DocumentElementType::TEXT, m_elementCounter++);
+            textElement.content = textBox->text();
+            textElement.position.pageNumber = pageIndex + 1;
+            
+            // 使用TextBox的精确边界框
+            QRectF bbox = textBox->boundingBox();
+            textElement.position.boundingBox = QRect(
+                static_cast<int>(bbox.x()),
+                static_cast<int>(bbox.y()),
+                static_cast<int>(bbox.width()),
+                static_cast<int>(bbox.height())
+            );
+            
+            // 设置格式信息
+            extractTextBoxFormatInfo(textBox.get(), textElement);
+            
+            elements.append(textElement);
+        }
+    } catch (const std::exception &e) {
+        qDebug() << "Error extracting text elements:" << e.what();
+    }
+}
+
+void LosslessDocumentConverter::extractImageElements(Poppler::Page *page, int pageIndex, QList<DocumentElement> &elements)
+{
+    try {
+        // 添加页面有效性检查
+        if (!page) {
+            qDebug() << "Page is null, skipping image extraction";
+            return;
+        }
+        
+        // 获取页面尺寸进行验证
+        QSizeF pageSize = page->pageSizeF();
+        if (pageSize.width() <= 0 || pageSize.height() <= 0) {
+            qDebug() << "Invalid page size, skipping image extraction";
+            return;
+        }
+        
+        // 渲染页面为图像进行分析，添加错误处理
+        QImage pageImage;
+        try {
+            // 使用较低的分辨率来避免内存问题
+            pageImage = page->renderToImage(72.0, 72.0); // 降低DPI从150到72
+        } catch (const std::exception &e) {
+            qDebug() << "Error rendering page to image:" << e.what();
+            return;
+        } catch (...) {
+            qDebug() << "Unknown error rendering page to image";
+            return;
+        }
+        
+        if (pageImage.isNull()) {
+            qDebug() << "Failed to render page to image";
+            return;
+        }
+        
+        // 检测图片区域（基于颜色和形状分析）
+        QList<QRect> imageRegions = detectImageRegions(pageImage);
+        
+        for (int i = 0; i < imageRegions.size(); ++i) {
+            const QRect &region = imageRegions[i];
+            
+            // 验证区域有效性
+            if (region.width() <= 0 || region.height() <= 0) {
+                continue;
+            }
+            
+            DocumentElement imageElement;
+            imageElement.type = DocumentElementType::IMAGE;
+            imageElement.id = generateElementId(DocumentElementType::IMAGE, m_elementCounter++);
+            imageElement.content = QS("图片区域_%1_%2x%3").arg(i + 1).arg(region.width()).arg(region.height());
+            imageElement.position.pageNumber = pageIndex + 1;
+            imageElement.position.boundingBox = region;
+            imageElement.mimeType = QS("image/png");
+            
+            // 裁剪并保存图片数据，添加错误处理
+            try {
+                QImage croppedImage = pageImage.copy(region);
+                if (!croppedImage.isNull()) {
+                    QBuffer buffer(&imageElement.binaryData);
+                    buffer.open(QIODevice::WriteOnly);
+                    croppedImage.save(&buffer, "PNG");
+                }
+            } catch (const std::exception &e) {
+                qDebug() << "Error processing image region:" << e.what();
+                continue;
+            }
+            
+            elements.append(imageElement);
+        }
+    } catch (const std::exception &e) {
+        qDebug() << "Error extracting image elements:" << e.what();
+    } catch (...) {
+        qDebug() << "Unknown error in extractImageElements";
+    }
+}
+
+void LosslessDocumentConverter::extractTableElements(Poppler::Page *page, int pageIndex, QList<DocumentElement> &elements)
+{
+    try {
+        // 使用Poppler的表格检测功能
+        auto textBoxes = page->textList();
+        
+        // 直接使用std::vector，避免QList的unique_ptr问题
+        QList<QRectF> tableRegions = detectTableRegionsFromVector(textBoxes);
+        
+        for (const QRectF &region : tableRegions) {
+            DocumentElement tableElement;
+            tableElement.type = DocumentElementType::TABLE;
+            tableElement.id = generateElementId(DocumentElementType::TABLE, m_elementCounter++);
+            tableElement.content = QS("表格");
+            tableElement.position.pageNumber = pageIndex + 1;
+            tableElement.position.boundingBox = QRect(
+                static_cast<int>(region.x()),
+                static_cast<int>(region.y()),
+                static_cast<int>(region.width()),
+                static_cast<int>(region.height())
+            );
+            
+            // 提取表格内容
+            QString tableContent = extractTableContentFromVector(textBoxes, region);
+            tableElement.content = tableContent;
+            
+            elements.append(tableElement);
+        }
+    } catch (const std::exception &e) {
+        qDebug() << "Error extracting table elements:" << e.what();
+    }
+}
+
+void LosslessDocumentConverter::extractChartElements(Poppler::Page *page, int pageIndex, QList<DocumentElement> &elements)
+{
+    try {
+        // 添加页面有效性检查
+        if (!page) {
+            qDebug() << "Page is null, skipping chart extraction";
+            return;
+        }
+        
+        // 渲染页面为图像进行分析，添加错误处理
+        QImage pageImage;
+        try {
+            // 使用较低的分辨率来避免内存问题
+            pageImage = page->renderToImage(72.0, 72.0); // 降低DPI从150到72
+        } catch (const std::exception &e) {
+            qDebug() << "Error rendering page to image for chart detection:" << e.what();
+            return;
+        } catch (...) {
+            qDebug() << "Unknown error rendering page to image for chart detection";
+            return;
+        }
+        
+        if (pageImage.isNull()) {
+            qDebug() << "Failed to render page to image for chart detection";
+            return;
+        }
+        
+        // 检测图表区域（基于颜色和形状分析）
+        QList<QRectF> chartRegions = detectChartRegions(pageImage);
+        
+        for (const QRectF &region : chartRegions) {
+            // 验证区域有效性
+            if (region.width() <= 0 || region.height() <= 0) {
+                continue;
+            }
+            
+            DocumentElement chartElement;
+            chartElement.type = DocumentElementType::CHART;
+            chartElement.id = generateElementId(DocumentElementType::CHART, m_elementCounter++);
+            chartElement.content = QS("图表");
+            chartElement.position.pageNumber = pageIndex + 1;
+            chartElement.position.boundingBox = QRect(
+                static_cast<int>(region.x()),
+                static_cast<int>(region.y()),
+                static_cast<int>(region.width()),
+                static_cast<int>(region.height())
+            );
+            
+            chartElement.mimeType = QS("image/chart");
+            elements.append(chartElement);
+        }
+    } catch (const std::exception &e) {
+        qDebug() << "Error extracting chart elements:" << e.what();
+    } catch (...) {
+        qDebug() << "Unknown error in extractChartElements";
+    }
+}
+
+void LosslessDocumentConverter::addSignatureElements(QList<DocumentElement> &elements)
+{
+    try {
+        DocumentElement signatureElement;
+        signatureElement.type = DocumentElementType::SIGNATURE;
+        signatureElement.id = generateElementId(DocumentElementType::SIGNATURE, m_elementCounter++);
+        signatureElement.content = QS("数字签名信息");
+        signatureElement.position.pageNumber = 0; // 签名通常是文档级别的
+        signatureElement.mimeType = QS("application/pdf-signature");
+        
+        elements.append(signatureElement);
+        qDebug() << "Added signature element to document";
+    } catch (const std::exception &e) {
+        qDebug() << "Error processing signatures:" << e.what();
+    }
+}
+
+QList<QRect> LosslessDocumentConverter::detectImageRegions(const QImage &pageImage)
+{
+    QList<QRect> imageRegions;
+    
+    // 简单的图片检测：寻找非白色/非黑色的区域
+    for (int y = 0; y < pageImage.height(); y += 20) {
+        for (int x = 0; x < pageImage.width(); x += 20) {
+            QColor color = pageImage.pixelColor(x, y);
+            
+            // 检测非白色/非黑色的区域
+            if (color.red() != color.green() || color.green() != color.blue()) {
+                // 可能是图片区域
+                QRect region(x, y, 200, 200); // 假设图片大小
+                imageRegions.append(region);
+            }
+        }
+    }
+    
+    return imageRegions;
+}
+
+QList<QRectF> LosslessDocumentConverter::detectTableRegionsFromVector(const std::vector<std::unique_ptr<Poppler::TextBox>> &textBoxes)
+{
+    QList<QRectF> tableRegions;
+    
+    // 简单的表格检测算法：寻找对齐的文本块
+    QList<QRectF> textRects;
+    for (const auto &textBox : textBoxes) {
+        if (textBox) {
+            textRects.append(textBox->boundingBox());
+        }
+    }
+    
+    // 按Y坐标分组，检测列对齐
+    QMap<int, QList<QRectF>> rows;
+    for (const QRectF &rect : textRects) {
+        int y = static_cast<int>(rect.y());
+        rows[y].append(rect);
+    }
+    
+    // 检测表格模式
+    for (auto it = rows.begin(); it != rows.end(); ++it) {
+        if (it.value().size() >= 2) { // 至少2列
+            QRectF tableRect;
+            for (const QRectF &rect : it.value()) {
+                if (tableRect.isNull()) {
+                    tableRect = rect;
+                } else {
+                    tableRect = tableRect.united(rect);
+                }
+            }
+            tableRegions.append(tableRect);
+        }
+    }
+    
+    return tableRegions;
+}
+
+QString LosslessDocumentConverter::extractTableContentFromVector(const std::vector<std::unique_ptr<Poppler::TextBox>> &textBoxes, const QRectF &region)
+{
+    QString content;
+    QList<QString> cells;
+    
+    for (const auto &textBox : textBoxes) {
+        if (textBox && region.contains(textBox->boundingBox())) {
+            cells.append(textBox->text());
+        }
+    }
+    
+    // 简单的表格格式化
+    content = cells.join(QS(" | "));
+    return content;
+}
+
+QList<QRectF> LosslessDocumentConverter::detectChartRegions(const QImage &pageImage)
+{
+    QList<QRectF> chartRegions;
+    
+    // 简单的图表检测：寻找彩色区域
+    for (int y = 0; y < pageImage.height(); y += 10) {
+        for (int x = 0; x < pageImage.width(); x += 10) {
+            QColor color = pageImage.pixelColor(x, y);
+            
+            // 检测非白色/非黑色的区域
+            if (color.red() != color.green() || color.green() != color.blue()) {
+                // 可能是图表区域
+                QRectF region(x, y, 100, 100); // 假设图表大小
+                chartRegions.append(region);
+            }
+        }
+    }
+    
+    return chartRegions;
 }
 
 LosslessDocumentConverter::ConvertStatus LosslessDocumentConverter::writeElementsToXml(const QList<DocumentElement> &elements, QXmlStreamWriter &writer)
@@ -776,37 +1068,6 @@ void LosslessDocumentConverter::extractTextBoxFormatInfo(void *textBox, Document
     element.attributes[QS("bbox_y")] = QString::number(bbox.y());
     element.attributes[QS("bbox_width")] = QString::number(bbox.width());
     element.attributes[QS("bbox_height")] = QString::number(bbox.height());
-}
-
-QList<QRect> LosslessDocumentConverter::detectImageRegions(const QImage &pageImage)
-{
-    QList<QRect> regions;
-    
-    // 简单的图片区域检测：寻找非白色区域
-    int width = pageImage.width();
-    int height = pageImage.height();
-    
-    // 扫描图像，寻找连续的非白色区域
-    QVector<QVector<bool>> visited(width, QVector<bool>(height, false));
-    
-    for (int y = 0; y < height; y += 10) { // 每10像素扫描一次
-        for (int x = 0; x < width; x += 10) {
-            if (!visited[x][y]) {
-                QRgb pixel = pageImage.pixel(x, y);
-                QColor color(pixel);
-                
-                // 如果不是白色或接近白色，可能是图片区域
-                if (color.lightness() < 240) { // 阈值可调整
-                    QRect region = floodFillRegion(pageImage, x, y, visited);
-                    if (region.width() > 50 && region.height() > 50) { // 最小尺寸过滤
-                        regions.append(region);
-                    }
-                }
-            }
-        }
-    }
-    
-    return regions;
 }
 
 QRect LosslessDocumentConverter::floodFillRegion(const QImage &image, int startX, int startY, QVector<QVector<bool>> &visited)

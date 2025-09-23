@@ -23,7 +23,9 @@
 #include <QDir>
 #include <QStandardPaths>
 #include <QTabWidget>
+#include <QProcessEnvironment>
 
+#include "src/QtCompat.h"
 #include "src/widgetTest/XmlTestWidget.h"
 #include "src/widgetTest/TestWidget.h"
 #include "src/widgetTest/DocxContentTestWidget.h"
@@ -35,6 +37,25 @@
 
 int main(int argc, char* argv[])
 {
+    // 设置Qt插件路径环境变量
+    QString appDir = QDir::currentPath();
+    QString pluginPath = appDir + QS("/platforms");
+    
+    // 如果本地没有插件，使用MSYS2的插件路径
+    if (!QDir(pluginPath).exists()) {
+        pluginPath = QS("C:/msys64/mingw64/share/qt6/plugins");
+    }
+    
+    // 使用qputenv设置环境变量
+    qputenv("QT_PLUGIN_PATH", pluginPath.toLocal8Bit());
+    
+    // 修复PATH设置 - 使用QByteArray的正确方法
+    QByteArray currentPath = qgetenv("PATH");
+    QByteArray newPath = currentPath + ";C:/msys64/mingw64/bin";
+    qputenv("PATH", newPath);
+    
+    qDebug() << "设置QT_PLUGIN_PATH为:" << pluginPath;
+
     QApplication app(argc, argv);
 
     // 设置应用程序信息

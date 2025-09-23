@@ -18,6 +18,13 @@
 #include <QRect>
 #include <QFont>
 #include <QColor>
+
+// Poppler前向声明
+namespace Poppler {
+    class Document;
+    class Page;
+    class TextBox;
+}
 #include <QMap>
 #include <QList>
 #include <QXmlStreamWriter>
@@ -243,6 +250,25 @@ private:
      */
     bool validateConversionIntegrity(const QString &originalPath, const QString &xmlPath);
 
+    // PDF处理辅助方法
+    std::unique_ptr<Poppler::Document> loadPdfDocument(const QString &filePath);
+    bool checkDigitalSignatures(Poppler::Document *document);
+    ConvertStatus processAllPages(Poppler::Document *document, QList<DocumentElement> &elements);
+    ConvertStatus processSinglePage(Poppler::Page *page, int pageIndex, QList<DocumentElement> &elements);
+    
+    // 元素提取方法
+    void extractTextElements(Poppler::Page *page, int pageIndex, QList<DocumentElement> &elements);
+    void extractImageElements(Poppler::Page *page, int pageIndex, QList<DocumentElement> &elements);
+    void extractTableElements(Poppler::Page *page, int pageIndex, QList<DocumentElement> &elements);
+    void extractChartElements(Poppler::Page *page, int pageIndex, QList<DocumentElement> &elements);
+    void addSignatureElements(QList<DocumentElement> &elements);
+    
+    // 检测算法
+    QList<QRect> detectImageRegions(const QImage &pageImage);
+    QList<QRectF> detectTableRegionsFromVector(const std::vector<std::unique_ptr<Poppler::TextBox>> &textBoxes);
+    QString extractTableContentFromVector(const std::vector<std::unique_ptr<Poppler::TextBox>> &textBoxes, const QRectF &region);
+    QList<QRectF> detectChartRegions(const QImage &pageImage);
+    
     // 辅助方法声明
     void parseParagraphFormat(QXmlStreamReader &reader, FormatInfo &format);
     void parseRunFormat(QXmlStreamReader &reader, FormatInfo &format);
@@ -252,8 +278,7 @@ private:
     void writeElementToXml(const DocumentElement &element, QXmlStreamWriter &writer);
     void extractTextBoxFormatInfo(void *textBox, DocumentElement &element);
     
-    // PDF内容检测方法
-    QList<QRect> detectImageRegions(const QImage &pageImage);
+    // PDF内容检测方法（旧版本，保留兼容性）
     QList<QRect> detectTableRegions(const QString &pageText, void *page);
     QList<QRect> detectChartRegions(void *page);
     QRect floodFillRegion(const QImage &image, int startX, int startY, QVector<QVector<bool>> &visited);

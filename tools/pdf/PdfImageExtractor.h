@@ -104,6 +104,12 @@ protected:
     QImage renderPageWithPoppler(int pageNumber, int dpi = 150) const;
     bool loadPopplerDocument(const QString& filePath);
     void closePopplerDocument();
+    
+    // 新增的辅助方法
+    QString extractObjectContent(const QString& pdfContent, const QString& objectNumber);
+    ImageInfo parseImageObjectContent(const QString& objContent, const QString& imageId);
+    ImageInfo parseXObjectImage(const QString& xObjectContent);
+    void extractImagesFromPageContent(const QString& pdfContent, QList<ImageInfo>& images);
 
 private:
     static const QStringList SUPPORTED_EXTENSIONS;
